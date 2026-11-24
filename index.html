@@ -512,6 +512,7 @@ async function dbxLoadLogos(){
           if (ext!=='svg'){ try{ blob = await shrink(blob,256,'image/png'); }catch(e){} }
           try{ await idbSet('dl:'+f.id,{hash:f.content_hash,blob}); }catch(e){}
         }
+        if (blob.type !== MIME[ext]) blob = new Blob([blob],{type:MIME[ext]});
         next.set(norm(f.name.replace(/\.[^.]+$/,'')), URL.createObjectURL(blob));
         if (++shown % 30 === 0) flush();
       }catch(e){}
@@ -571,6 +572,7 @@ const Store = {
       } else if (S.mode==='dbx'){
         let blob = null; try{ const c = await idbGet('dl:photo:'+ref); if (c) blob = c; }catch(e){}
         if (!blob){ blob = (await dbxDown('/photos/'+ref)).blob; try{ await idbSet('dl:photo:'+ref, blob); }catch(e){} }
+        if (!blob.type || blob.type==='application/octet-stream') blob = new Blob([blob],{type:'image/jpeg'});
         url = URL.createObjectURL(blob);
       } else if (S.mode==='db'){
         const snap = await DB.collection(MEDIA('photos')).doc(ref).get();
