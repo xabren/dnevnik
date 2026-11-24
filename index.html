@@ -269,7 +269,7 @@ const photoRefs = m => String((m&&m.photos)||'').split('|').map(x=>x.trim()).fil
 
 /* ---------- state ---------- */
 let DB = null, UID = null, unsub = null, loadTimer = null, logosLoadedDb = false, inflight = 0, stash = null;
-const S = { mode:'wait', loaded:false, reached:false, docs:new Map(), view:'diary', team:'цска', tSeason:'', q:'', seasonF:'', tourF:'', desc:false, open:new Set(), confirmDel:null };
+const S = { mode:'wait', loaded:false, reached:false, docs:new Map(), view:'diary', team:'цска', tSeason:'', q:'', seasonF:'', tourF:'', desc:true, open:new Set(), confirmDel:null };
 
 const ui = {};
 let LOGOS = new Map();
