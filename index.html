@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Дневник на мачовете</title>
+<style>
+:root{
+  /* Layout: one ledger column; season headings centered between rules; scoreboard numerals for results. */
+  --bg:#f1f3ee; --surface:#ffffff; --ink:#17211b; --muted:#566559; --line:#d6dcd3;
+  --accent:#1c6a47; --on-accent:#ffffff; --soft:#e4eee7; --mark:#8f4c00; --danger:#b3261e;
+  --display:"Oswald","Arial Narrow",Impact,sans-serif;
+  --body:"Source Sans 3","Segoe UI",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1511; --surface:#171f19; --ink:#e8eee9; --muted:#9aa89f; --line:#2b362e;
+    --accent:#5fc796; --on-accent:#0b1a12; --soft:#1e2a22; --mark:#e0a458; --danger:#ff8a80;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1511; --surface:#171f19; --ink:#e8eee9; --muted:#9aa89f; --line:#2b362e;
+  --accent:#5fc796; --on-accent:#0b1a12; --soft:#1e2a22; --mark:#e0a458; --danger:#ff8a80;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--body);-webkit-text-size-adjust:100%}
+.wrap{max-width:980px;margin:0 auto;padding:20px 16px 64px}
+h1,h2,h3{text-wrap:balance;margin:0}
+h1{font:600 clamp(28px,5vw,40px)/1.05 var(--display);letter-spacing:.01em;text-transform:uppercase}
+.sub{margin:6px 0 0;color:var(--muted);max-width:60ch}
+.top{display:flex;gap:16px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.status{font-size:14px;color:var(--muted);padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);min-height:32px}
+.status.warn{color:var(--mark);border-color:var(--mark)}
+.status.bad{color:var(--danger);border-color:var(--danger)}
+.tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:20px 0 16px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.tile b{display:block;font:600 30px/1 var(--display);font-variant-numeric:tabular-nums;color:var(--accent)}
+.tile span{font-size:13px;color:var(--muted)}
+.bar{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.tabs{display:flex;gap:4px;background:var(--soft);padding:4px;border-radius:10px}
+.tab{appearance:none;border:0;background:transparent;color:var(--ink);font:600 15px var(--body);padding:8px 14px;border-radius:7px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--accent);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.btn{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 15px var(--body);padding:9px 14px;border-radius:8px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.btn.danger{color:var(--danger);border-color:var(--danger)}
+.btn.small{padding:5px 10px;font-size:14px}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+input,select,textarea{font:16px var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%}
+textarea{min-height:84px;resize:vertical}
+label{display:block;font-size:14px;font-weight:600;margin-bottom:4px}
+.filters{display:grid;grid-template-columns:2fr 1fr 1.4fr auto;gap:10px;margin-bottom:6px;align-items:end}
+.hint{font-size:14px;color:var(--muted);margin:8px 0 0}
+.note{background:var(--soft);border:1px dashed var(--accent);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:15px}
+.season{display:flex;align-items:center;gap:14px;margin:28px 0 12px}
+.season::before,.season::after{content:"";flex:1;height:1px;background:var(--line)}
+.season h2{font:600 22px/1 var(--display);letter-spacing:.06em;text-transform:uppercase;text-align:center}
+.season small{display:block;font:400 13px var(--body);letter-spacing:0;text-transform:none;color:var(--muted);margin-top:4px}
+.match{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+.m-head{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.m-head b{color:var(--ink)}
+.teams{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin:6px 0 2px}
+.team{font-weight:700;font-size:18px;line-height:1.2;overflow-wrap:anywhere}
+.team.home{text-align:right}
+.m-body{display:grid;grid-template-columns:104px minmax(0,1fr) 104px;gap:14px;align-items:center;margin-top:4px}
+.m-center{min-width:0}
+.slot{display:flex;align-items:center;justify-content:center;width:104px;height:104px}
+.crest{width:100%;height:100%;display:flex;align-items:center;justify-content:center;border-radius:50%;font:600 30px/1 var(--display);letter-spacing:.03em;color:#fff}
+img.crest{object-fit:contain;border-radius:0;background:transparent;border:0;padding:0}
+img.crest.plate{background:#f3f3ec;border-radius:50%;padding:5%;box-sizing:border-box;box-shadow:0 0 0 1px rgba(0,0,0,.18)}
+.score{font:600 28px/1 var(--display);letter-spacing:.04em;font-variant-numeric:tabular-nums;background:var(--soft);border-radius:8px;padding:6px 12px;min-width:76px;text-align:center}
+.cnt{display:inline-block;font:600 12px/1 var(--body);color:var(--mark);border:1px solid currentColor;border-radius:999px;padding:2px 6px;margin:0 6px;vertical-align:middle;font-variant-numeric:tabular-nums}
+.m-meta{color:var(--muted);font-size:14px;text-align:center}
+.m-where{text-align:center;font-size:14px;margin-top:2px}
+.m-foot{display:flex;justify-content:center;margin-top:8px}
+.link{appearance:none;background:none;border:0;color:var(--accent);font:600 14px var(--body);cursor:pointer;padding:2px 6px;text-decoration:underline}
+.detail{border-top:1px solid var(--line);margin-top:10px;padding-top:10px;display:grid;gap:8px;font-size:15px}
+.detail dt{font-size:13px;font-weight:600;color:var(--muted)}
+.detail dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.detail .acts{display:flex;gap:8px;flex-wrap:wrap}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
+.panel h3{font:600 18px var(--display);letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px}
+.cols{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.brow{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,2fr) 40px;gap:10px;align-items:center;font-size:14px;margin:5px 0}
+.brow span:first-child{overflow-wrap:anywhere}
+.track{background:var(--soft);border-radius:4px;height:12px}
+.fill{background:var(--accent);height:100%;border-radius:4px;min-width:3px}
+.brow b{text-align:right;font-variant-numeric:tabular-nums}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto;z-index:10}
+.dialog{background:var(--surface);color:var(--ink);border-radius:12px;width:100%;max-width:720px;padding:18px;margin:auto}
+.dialog h2{font:600 22px var(--display);letter-spacing:.05em;text-transform:uppercase;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.grid .full{grid-column:1/-1}
+.err{color:var(--danger);font-size:14px;min-height:20px;margin-top:8px}
+.dacts{display:flex;gap:10px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
+.csv{font:13px/1.4 ui-monospace,Menlo,monospace;min-height:140px}
+@media (max-width:700px){
+  .tiles{grid-template-columns:repeat(3,1fr)}
+  .filters{grid-template-columns:1fr 1fr}
+  .filters .wide{grid-column:1/-1}
+  .m-body{grid-template-columns:56px minmax(0,1fr) 56px;gap:8px}
+  .slot{width:56px;height:56px}
+  .crest{font-size:18px}
+  .teams{grid-template-columns:1fr;gap:6px}
+  .team.home,.team{text-align:center}
+  .score{justify-self:center}
+  .cols,.grid{grid-template-columns:1fr}
+  .brow{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 36px}
+}
+
+.photos{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.ph{padding:0;border:1px solid var(--line);border-radius:8px;background:var(--soft);cursor:pointer;width:96px;height:96px;overflow:hidden}
+.ph img,.ph-edit img{width:100%;height:100%;object-fit:cover;display:block}
+.ph-edit{position:relative;width:96px;height:96px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:var(--soft)}
+.ph-x{position:absolute;top:3px;right:3px;width:30px;height:30px;border-radius:50%;border:0;background:rgba(0,0,0,.7);color:#fff;font:700 18px/1 var(--body);cursor:pointer}
+.ph-add{display:flex;align-items:center;justify-content:center;width:96px;height:96px;border:2px dashed var(--accent);border-radius:8px;color:var(--accent);font-weight:600;cursor:pointer;text-align:center;font-size:14px;margin:0;position:relative}
+.sr{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;z-index:30;cursor:zoom-out;padding:8px}
+.lightbox img{max-width:100%;max-height:100%;object-fit:contain}
+.m-ph{margin-left:6px}
+.phone .wrap{padding:12px 12px 96px}
+.phone .sub{display:none}
+.phone h1{font-size:26px}
+.phone .tabs{width:100%}
+.phone .tab{flex:1;padding:12px 6px}
+.phone .btn,.phone input,.phone select{min-height:44px}
+.phone #add{position:fixed;right:14px;bottom:14px;z-index:5;box-shadow:0 4px 14px rgba(0,0,0,.4);border-radius:999px;padding:14px 20px}
+.phone .bar{margin-bottom:10px}
+.phone .match{padding:10px}
+.phone .m-body{grid-template-columns:48px minmax(0,1fr) 48px;gap:6px}
+.phone .slot{width:48px;height:48px}
+.phone .overlay{padding:0}
+.phone .dialog{border-radius:0;min-height:100%;max-width:none}
+.phone .tiles{grid-template-columns:repeat(5,1fr);gap:6px;margin:12px 0 10px}
+.phone .tile{padding:6px 6px}
+.phone .tile b{font-size:22px}
+.phone .tile span{font-size:11px}
+.phone .grid{grid-template-columns:1fr 1fr;gap:8px}
+.phone .grid .full{grid-column:1/-1}
+.phone .dacts{position:sticky;bottom:0;background:var(--surface);padding:10px 0;margin-top:8px;border-top:1px solid var(--line)}
+.phone .status{font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Дневник на мачовете</h1>
+      <p class="sub" id="sub">Мачовете, които съм гледал на живо, и какво помня от тях. Всеки запис получава общ номер, номер в сезона и пореден път за отборите и стадиона.</p>
+    </div>
+    <div class="status" id="status" role="status" aria-live="polite">Зареждам…</div>
+  </header>
+  <section class="tiles" id="tiles" aria-label="Обобщение"></section>
+  <div class="bar">
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <button class="btn primary" id="add" type="button">+ Нов мач</button>
+  </div>
+  <main id="main"></main>
+</div>
+<div id="modal"></div>
+<datalist id="dl-team"></datalist><datalist id="dl-stad"></datalist><datalist id="dl-tour"></datalist>
+<datalist id="dl-city"></datalist><datalist id="dl-country"></datalist>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- helpers ---------- */
+const pad = n => String(n).padStart(2,'0');
+const norm = s => String(s||'').trim().toLowerCase().replace(/\s+/g,' ');
+function h(tag, attrs, ...kids){
+  const e = document.createElement(tag);
+  if (attrs) for (const [k,v] of Object.entries(attrs)){
+    if (v==null || v===false) continue;
+    if (k==='class') e.className = v;
+    else if (k==='text') e.textContent = v;
+    else if (k==='value') e.value = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v===true ? '' : v);
+  }
+  for (const c of kids.flat()){ if (c==null || c===false) continue; e.append(c.nodeType ? c : document.createTextNode(String(c))); }
+  return e;
+}
+const $ = s => document.querySelector(s);
+const IN_CLAUDE = !!(window.claude && typeof window.claude.use==='function');
+const PHONE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (window.matchMedia && matchMedia('(pointer:coarse)').matches && Math.min(screen.width,screen.height)<820);
+document.documentElement.classList.toggle('phone', !!PHONE);
+function loadImg(file){ return new Promise((res,rej)=>{ const u=URL.createObjectURL(file), im=new Image(); im.onload=()=>{ URL.revokeObjectURL(u); res(im); }; im.onerror=()=>{ URL.revokeObjectURL(u); rej(new Error('bad image')); }; im.src=u; }); }
+async function shrink(file, maxSide, type, q){
+  const im = await loadImg(file), w0 = im.naturalWidth||maxSide, h0 = im.naturalHeight||maxSide;
+  const sc = Math.min(1, maxSide/Math.max(w0,h0)), c = document.createElement('canvas');
+  c.width = Math.max(1,Math.round(w0*sc)); c.height = Math.max(1,Math.round(h0*sc));
+  const x = c.getContext('2d'); if (type==='image/jpeg'){ x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height); }
+  x.drawImage(im,0,0,c.width,c.height);
+  return new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('no blob')),type,q));
+}
+const blobToDataURL = b => new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(r.error); r.readAsDataURL(b); });
+async function makePhoto(file){
+  let side=1400, q=.78, b;
+  for (let i=0;i<6;i++){ b = await shrink(file,side,'image/jpeg',q); if (b.size<=380*1024) break; side*=.85; q=Math.max(.5,q-.05); }
+  return b;
+}
+async function makeLogo(file){
+  if (file.type==='image/svg+xml' || /\.svg$/i.test(file.name)){ if (file.size>250*1024) throw new Error('svg too big'); return blobToDataURL(new Blob([await file.arrayBuffer()],{type:'image/svg+xml'})); }
+  return blobToDataURL(await shrink(file,256,'image/png'));
+}
+const hashKey = k => { let x=5381; for (const ch of k) x=((x*33)^ch.codePointAt(0))>>>0; return 'l'+x.toString(36); };
+const fmtDate = iso => iso ? iso.slice(8,10)+'.'+iso.slice(5,7)+'.'+iso.slice(0,4) : '';
+function isoOf(y,mo,d){
+  y=+y; mo=+mo; d=+d;
+  if (!(y>=1850 && y<=2200) || mo<1 || mo>12 || d<1 || d>31) return null;
+  const dt = new Date(Date.UTC(y,mo-1,d));
+  if (dt.getUTCMonth()!==mo-1) return null;
+  return y+'-'+pad(mo)+'-'+pad(d);
+}
+function parseDate(s){
+  s = String(s||'').trim(); let m;
+  if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) return isoOf(m[1],m[2],m[3]);
+  if ((m = s.match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})/))) return isoOf(m[3],m[2],m[1]);
+  return null;
+}
+/* A football season runs from 1 July to 30 June. */
+function seasonOf(iso){
+  const y = +iso.slice(0,4), mo = +iso.slice(5,7);
+  const start = mo>=7 ? y : y-1;
+  return { start, label: start+'/'+pad((start+1)%100), half: mo>=7 ? 'a' : 'b' };
+}
+function docIdOf(iso){ const s = seasonOf(iso); return 'h'+s.start+'-'+pad((s.start+1)%100)+s.half; }
+
+const FIELD_KEYS = ['date','tour','round','home','away','score','extra','first','stadium','city','country','with','notes','lineups','scorers'];
+function clean(m){
+  if (!m || typeof m!=='object') return null;
+  const date = parseDate(m.date); if (!date) return null;
+  const o = { id: String(m.id||('m'+Date.now().toString(36)+Math.random().toString(36).slice(2,7))), date, t: Number(m.t)||0 };
+  for (const k of FIELD_KEYS) if (k!=='date') o[k] = String(m[k]==null ? '' : m[k]).slice(0,4000);
+  o.photos = String(m.photos==null ? '' : m.photos).slice(0,1500);
+  return o;
+}
+const photoRefs = m => String((m&&m.photos)||'').split('|').map(x=>x.trim()).filter(Boolean).slice(0,3);
+
+/* ---------- state ---------- */
+let DB = null, UID = null, unsub = null, loadTimer = null, logosLoadedDb = false, inflight = 0, stash = null;
+const S = { mode:'wait', loaded:false, reached:false, docs:new Map(), view:'diary', q:'', seasonF:'', tourF:'', desc:false, open:new Set(), confirmDel:null };
+
+const ui = {};
+let LOGOS = new Map();
+function checkDark(img){
+  try{
+    const n=48, c=document.createElement('canvas'); c.width=n; c.height=n;
+    const x=c.getContext('2d',{willReadFrequently:true}); x.drawImage(img,0,0,n,n);
+    const d=x.getImageData(0,0,n,n).data; let w=0,l=0,clear=0,ringN=0,ringDark=0;
+    for(let py=0;py<n;py++) for(let px=0;px<n;px++){
+      const i=(py*n+px)*4, a=d[i+3]/255, lum=(0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2])/255;
+      if(a<.98) clear++;
+      if(a>.15){ w+=a; l+=a*lum; }
+      const r=Math.hypot(px-n/2+.5,py-n/2+.5)/(n/2);
+      if(r>.78 && a>.5){ ringN++; if(lum<.3) ringDark++; }
+    }
+    if(clear<n*n*0.05) return;
+    const globalDark = w>0 && l/w<0.42;
+    const ringIsDark = ringN>12 && ringDark/ringN>0.5;
+    if(globalDark || ringIsDark) img.classList.add('plate');
+  }catch(e){}
+}
+function crest(name){
+  const k = norm(name); if (!k) return null;
+  const file = LOGOS.get(k);
+  if (file) return h('img',{class:'crest',src:file,alt:'',onload:e=>checkDark(e.target)});
+  let hash = 0; for (const ch of k) hash = (hash*31 + ch.codePointAt(0)) >>> 0;
+  const words = String(name).replace(/\([^)]*\)/g,' ').split(/[\s.\-]+/).filter(w=>/[\p{L}\d]/u.test(w));
+  let ini = words.length>1 ? words.slice(0,2).map(w=>[...w][0]).join('') : [...(words[0]||'?')].slice(0,3).join('');
+  return h('span',{class:'crest','aria-hidden':'true',style:'background:hsl('+(hash%360)+' 42% 36%)'},ini.toUpperCase());
+}
+
+const DEMO = [
+  {id:'d1',date:'2011-08-25',tour:'Лига Европа',round:'плейоф, реванш',home:'ЦСКА',away:'Стяуа (Букурещ)',score:'1:1',extra:'',first:'0:2',stadium:'Васил Левски',city:'София',country:'България',with:'',notes:'ПРИМЕР. Тук отива споменът: какво си запомнил, с кого си бил, линкове.',lineups:'',scorers:"72' Кристиян Танасе (Стяуа); 83' Мишел Платини (ЦСКА)",t:1},
+  {id:'d2',date:'2012-02-25',tour:'Бундеслига',round:'23-ти кръг',home:'Кьолн',away:'Байер Леверкузен',score:'0:2',extra:'',first:'',stadium:'Райн-Енерги',city:'Кьолн',country:'Германия',with:'',notes:'ПРИМЕР.',lineups:'',scorers:"0:1 Ларс Бендер 16'; 0:2 Ларс Бендер 50'",t:2},
+  {id:'d3',date:'2012-02-26',tour:'Бундеслига',round:'23-ти кръг',home:'Борусия Дортмунд',away:'Хановер',score:'3:1',extra:'',first:'',stadium:'Сигнал Идуна Парк',city:'Дортмунд',country:'Германия',with:'',notes:'ПРИМЕР.',lineups:'',scorers:'',t:3}
+].map(clean);
+
+function realList(){
+  const out = [];
+  S.docs.forEach(arr => arr.forEach(m => out.push(m)));
+  out.sort((a,b) => a.date<b.date?-1 : a.date>b.date?1 : (a.t-b.t) || (a.id<b.id?-1:1));
+  return out;
+}
+function derive(list){
+  const team = new Map(), stad = new Map(), seas = new Map(), out = [];
+  list.forEach((m,i) => {
+    const sk = seasonOf(m.date).label, sn = (seas.get(sk)||0)+1; seas.set(sk,sn);
+    const hk = norm(m.home), ak = norm(m.away), st = norm(m.stadium);
+    let hn=0, an=0, stn=0;
+    if (hk){ hn=(team.get(hk)||0)+1; team.set(hk,hn); }
+    if (ak){ an=(team.get(ak)||0)+1; team.set(ak,an); }
+    if (st){ stn=(stad.get(st)||0)+1; stad.set(st,stn); }
+    out.push({ m, no:i+1, sn, season:sk, hn, an, stn });
+  });
+  return out;
+}
+function current(){
+  const real = realList();
+  if (S.loaded && !real.length) return { rows: derive(DEMO.slice().sort((a,b)=>a.date<b.date?-1:1)), demo:true };
+  return { rows: derive(real), demo:false };
+}
+
+/* ---------- status ---------- */
+let FILEINFO = { name:'Machove.csv', path:'' };
+let DIR = null, FH = null, backedUp = false;
+function setStatus(kind, extra){
+  const el = $('#status'); el.className = 'status';
+  const t = {
+    wait:'Зареждам…', saving:'Записвам…',
+    saved: S.mode==='dbx' ? 'Всичко е запазено в Dropbox' : S.mode==='db' ? 'Всичко е запазено в облака' : S.mode==='local' ? 'Запазено само на това устройство' : 'Всичко е записано в Machove.csv',
+    loaded:'Папка: '+(DIR?DIR.name:'')+' · Machove.csv',
+    connect:'Още не е избрана папка с Machove.csv.',
+    connect_dbx:'Още не е свързан Dropbox.',
+    conflict:'Файлът е променен от друго устройство. Презаредих го. Повтори последната промяна.',
+    nofsa:'Този браузър не може да записва във файлове. Отвори страницата в Edge или Chrome.',
+    perm:'Няма разрешение за записване. Свържи папката отново от раздел „Данни“.',
+    local:'Пази се само на това устройство',
+    slow:'Данните още не са достигнати. Показаното може да е остаряло.',
+    denied:'Нямаш право да записваш в облака. Записите остават само на това устройство, затова свали копие от „Данни“.',
+    nostore:'Този изглед не може да пази данни. Свали копие от „Данни“.',
+    error:'Не успях да запиша'+(extra?' ('+extra+')':'')+'. Опитай пак.'
+  }[kind] || '';
+  if (kind==='connect'||kind==='connect_dbx'||kind==='conflict'||kind==='nofsa'||kind==='perm'||kind==='error'||kind==='denied'||kind==='nostore') el.classList.add('bad');
+  if (kind==='slow'||kind==='local') el.classList.add('warn');
+  el.textContent = t;
+}
+
+/* ---------- remembering the folder (IndexedDB) ---------- */
+function idb(){ return new Promise((res,rej)=>{ const r=indexedDB.open('machove-diary',1); r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+async function idbGet(k){ const db=await idb(); return new Promise((res,rej)=>{ const q=db.transaction('kv').objectStore('kv').get(k); q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error); }); }
+async function idbDel(k){ const db=await idb(); return new Promise((res,rej)=>{ const t=db.transaction('kv','readwrite'); t.objectStore('kv').delete(k); t.oncomplete=()=>res(); t.onerror=()=>rej(t.error); }); }
+async function idbSet(k,v){ const db=await idb(); return new Promise((res,rej)=>{ const t=db.transaction('kv','readwrite'); t.objectStore('kv').put(v,k); t.oncomplete=()=>res(); t.onerror=()=>rej(t.error); }); }
+
+/* ---------- reading and writing Machove.csv ---------- */
+const MIME = { png:'image/png', jpg:'image/jpeg', jpeg:'image/jpeg', svg:'image/svg+xml', webp:'image/webp', gif:'image/gif' };
+async function loadLogos(){
+  const next = new Map();
+  try{
+    const ld = await DIR.getDirectoryHandle('logos');
+    for await (const [name, handle] of ld.entries()){
+      const ext = (name.split('.').pop()||'').toLowerCase();
+      if (handle.kind!=='file' || !MIME[ext]) continue;
+      const f = await handle.getFile();
+      next.set(norm(name.replace(/\.[^.]+$/,'')), URL.createObjectURL(new Blob([f],{type:MIME[ext]})));
+    }
+  }catch(e){}
+  LOGOS.forEach(u => { try{ URL.revokeObjectURL(u); }catch(e){} });
+  LOGOS = next;
+}
+async function writeFile(text){
+  if (!backedUp){
+    try{
+      const old = await (await FH.getFile()).text();
+      if (old.trim()){ const bh = await DIR.getFileHandle('Machove.csv.bak',{create:true}); const w = await bh.createWritable(); await w.write(old); await w.close(); }
+    }catch(e){}
+    backedUp = true;
+  }
+  const w = await FH.createWritable(); await w.write(text); await w.close();
+}
+const LSKEY = 'matchdiary.v1';
+function lsLoad(){
+  try{
+    const o = JSON.parse(localStorage.getItem(LSKEY)||'{}'), next = new Map();
+    for (const k of Object.keys(o)){ const arr = (o[k]||[]).map(clean).filter(Boolean); if (arr.length) next.set(k,arr); }
+    S.docs = next;
+  }catch(e){}
+}
+function lsSave(){ try{ const o={}; S.docs.forEach((v,k)=>{o[k]=v;}); localStorage.setItem(LSKEY, JSON.stringify(o)); return true; }catch(e){ return false; } }
+let chain = Promise.resolve();
+function flushSnap(){ if (!inflight && stash){ S.docs = stash; stash = null; refreshAll(); } }
+function persist(ids){
+  setStatus('saving');
+  const payload = [...(ids||[])].map(id => [id, (S.docs.get(id)||[]).slice()]);
+  inflight++;
+  chain = chain.then(async () => {
+    if (S.mode==='file'){ await writeFile(toCSV()); setStatus('saved'); }
+    else if (S.mode==='dbx'){ await dbxSaveCSV(); setStatus('saved'); }
+    else if (S.mode==='db'){
+      for (const [id,arr] of payload){
+        const ref = DB.collection('data/users/'+UID).doc(id);
+        if (arr.length) await ref.set({ matches: arr }); else await ref.delete();
+      }
+      setStatus('saved');
+    } else setStatus(lsSave() ? 'saved' : 'nostore');
+  }).catch(err => {
+    const code = err && err.code;
+    if (S.mode==='db' && (code==='invalid_argument'||code==='not_granted'||code==='revoked'||code==='capability_disabled')){
+      S.mode = 'local'; if (unsub) unsub(); lsSave(); setStatus('denied');
+    } else if (err && err.code==='conflict' && S.mode==='dbx'){ setStatus('conflict'); dbxOpen().then(() => setStatus('conflict')).catch(()=>{}); }
+    else if (err && err.code==='auth' && S.mode==='dbx'){ DBXS.refresh = null; dbxSaveTokens(); S.mode = 'dbx-connect'; setStatus('connect_dbx'); refreshAll(); }
+    else if (err && err.name==='NotAllowedError') setStatus('perm');
+    else setStatus('error', String(code || (err && (err.name||err.message)) || err).slice(0,60));
+  }).then(() => { inflight--; flushSnap(); });
+  return chain;
+}
+function upsert(m){
+  const touched = new Set(), newId = docIdOf(m.date);
+  for (const [k,arr] of S.docs){
+    if (arr.some(x=>x.id===m.id)){ S.docs.set(k, arr.filter(x=>x.id!==m.id)); touched.add(k); }
+  }
+  S.docs.set(newId, (S.docs.get(newId)||[]).concat([m])); touched.add(newId);
+  for (const k of [...S.docs.keys()]) if (!S.docs.get(k).length) S.docs.delete(k);
+  refreshAll(); return persist(touched);
+}
+function remove(id){
+  const touched = new Set(); let gone = null;
+  for (const [k,arr] of S.docs){
+    const f = arr.find(x=>x.id===id);
+    if (f){ gone = f; S.docs.set(k, arr.filter(x=>x.id!==id)); touched.add(k); if(!S.docs.get(k).length) S.docs.delete(k); }
+  }
+  refreshAll();
+  const p = persist(touched);
+  if (gone) photoRefs(gone).forEach(r => Store.photoDel(r));
+  return p;
+}
+
+/* ---------- Dropbox ---------- */
+const DBX_KEY = '9q69nwdf8d999na';
+const HOSTED = /^https?:$/.test(location.protocol) && !IN_CLAUDE && !!DBX_KEY;
+const DBX_REDIRECT = location.origin + location.pathname.replace(/index\.html$/,'');
+const DBXS = { acc:null, exp:0, refresh:null, rev:null };
+const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const asciiJson = o => JSON.stringify(o).replace(/[\u007f-￿]/g, c => '\\u'+('0000'+c.charCodeAt(0).toString(16)).slice(-4));
+function dbxLoadTokens(){ try{ DBXS.refresh = (JSON.parse(localStorage.getItem('dbx.v1')||'{}')).refresh || null; }catch(e){} }
+function dbxSaveTokens(){ try{ if (DBXS.refresh) localStorage.setItem('dbx.v1', JSON.stringify({refresh:DBXS.refresh})); else localStorage.removeItem('dbx.v1'); }catch(e){} }
+async function dbxLogin(){
+  const ver = b64url(crypto.getRandomValues(new Uint8Array(48)));
+  const ch = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ver)));
+  sessionStorage.setItem('dbx.pkce', ver);
+  location.href = 'https://www.dropbox.com/oauth2/authorize?'+new URLSearchParams({client_id:DBX_KEY,response_type:'code',code_challenge:ch,code_challenge_method:'S256',token_access_type:'offline',redirect_uri:DBX_REDIRECT}).toString();
+}
+async function dbxTokenReq(params){
+  const r = await fetch('https://api.dropboxapi.com/oauth2/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(Object.assign({client_id:DBX_KEY},params)).toString()});
+  const j = await r.json().catch(()=>({}));
+  if (!r.ok){ const e = new Error(j.error_description||j.error||'auth'); e.code = 'auth'; throw e; }
+  return j;
+}
+function dbxGot(j){ DBXS.acc = j.access_token; DBXS.exp = Date.now()+(j.expires_in||14400)*1000; if (j.refresh_token){ DBXS.refresh = j.refresh_token; dbxSaveTokens(); } }
+async function dbxExchange(code){
+  const ver = sessionStorage.getItem('dbx.pkce'); sessionStorage.removeItem('dbx.pkce');
+  dbxGot(await dbxTokenReq({grant_type:'authorization_code',code,code_verifier:ver||'',redirect_uri:DBX_REDIRECT}));
+}
+async function dbxToken(){
+  if (DBXS.acc && Date.now() < DBXS.exp-60000) return DBXS.acc;
+  if (!DBXS.refresh){ const e = new Error('no auth'); e.code = 'auth'; throw e; }
+  dbxGot(await dbxTokenReq({grant_type:'refresh_token',refresh_token:DBXS.refresh}));
+  return DBXS.acc;
+}
+async function dbxFail(r){
+  let j = {}; try{ j = await r.json(); }catch(e){}
+  const e = new Error(j.error_summary || ('http '+r.status));
+  e.code = r.status===401 ? 'auth' : /not_found/.test(e.message) ? 'not_found' : /conflict/.test(e.message) ? 'conflict' : 'dbx';
+  return e;
+}
+async function dbxRpc(ep, body){
+  const t = await dbxToken();
+  const r = await fetch('https://api.dropboxapi.com/2/'+ep,{method:'POST',headers:{Authorization:'Bearer '+t,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if (!r.ok) throw await dbxFail(r);
+  return r.json();
+}
+async function dbxDown(path){
+  const t = await dbxToken();
+  const r = await fetch('https://content.dropboxapi.com/2/files/download',{method:'POST',headers:{Authorization:'Bearer '+t,'Dropbox-API-Arg':asciiJson({path})}});
+  if (!r.ok) throw await dbxFail(r);
+  let meta = {}; try{ meta = JSON.parse(r.headers.get('dropbox-api-result')||'{}'); }catch(e){}
+  return { blob: await r.blob(), meta };
+}
+async function dbxUp(path, blob, mode){
+  const t = await dbxToken();
+  const r = await fetch('https://content.dropboxapi.com/2/files/upload',{method:'POST',headers:{Authorization:'Bearer '+t,'Dropbox-API-Arg':asciiJson({path,mode:mode||'overwrite',autorename:false,mute:true}),'Content-Type':'application/octet-stream'},body:blob});
+  if (!r.ok) throw await dbxFail(r);
+  return r.json();
+}
+async function dbxSaveCSV(){
+  const r = await dbxUp('/Machove.csv', new Blob([toCSV()],{type:'text/csv'}), DBXS.rev ? {'.tag':'update',update:DBXS.rev} : 'add');
+  DBXS.rev = r.rev || null;
+}
+async function dbxOpen(){
+  let text = '';
+  try{ const d = await dbxDown('/Machove.csv'); text = await d.blob.text(); DBXS.rev = (d.meta && d.meta.rev) || null; }
+  catch(e){ if (e.code!=='not_found') throw e; DBXS.rev = null; }
+  loadFromCSV(text);
+  S.mode = 'dbx'; S.loaded = true; S.reached = true;
+  setStatus('saved'); setSub(); refreshAll();
+  dbxLoadLogos();
+}
+async function dbxLoadLogos(){
+  let entries = [];
+  try{
+    let r = await dbxRpc('files/list_folder',{path:'/logos',limit:2000});
+    entries = r.entries;
+    while (r.has_more){ r = await dbxRpc('files/list_folder/continue',{cursor:r.cursor}); entries = entries.concat(r.entries); }
+  }catch(e){ if (e.code!=='not_found') return; }
+  const todo = entries.filter(x => x['.tag']==='file' && MIME[(x.name.split('.').pop()||'').toLowerCase()]);
+  const next = new Map(); let i = 0, shown = 0;
+  const flush = () => { LOGOS = new Map(next); if (S.mode==='dbx') refreshAll(); };
+  async function worker(){
+    while (i < todo.length){
+      const f = todo[i++], ext = f.name.split('.').pop().toLowerCase();
+      try{
+        let blob = null;
+        try{ const c = await idbGet('dl:'+f.id); if (c && c.hash===f.content_hash) blob = c.blob; }catch(e){}
+        if (!blob){
+          blob = (await dbxDown(f.path_display||f.path_lower)).blob;
+          if (ext!=='svg'){ try{ blob = await shrink(blob,256,'image/png'); }catch(e){} }
+          try{ await idbSet('dl:'+f.id,{hash:f.content_hash,blob}); }catch(e){}
+        }
+        next.set(norm(f.name.replace(/\.[^.]+$/,'')), URL.createObjectURL(blob));
+        if (++shown % 30 === 0) flush();
+      }catch(e){}
+    }
+  }
+  await Promise.all([worker(),worker(),worker(),worker(),worker(),worker()]);
+  flush();
+}
+function dbxLogout(){
+  DBXS.acc = null; DBXS.refresh = null; DBXS.rev = null; dbxSaveTokens();
+  S.mode = 'dbx-connect'; S.loaded = false; S.docs = new Map(); LOGOS = new Map();
+  setStatus('connect_dbx'); setSub(); buildChrome2();
+}
+function dbxConnectPanel(){
+  return h('div',{class:'note'},
+    h('p',null,'За да пазиш мачовете, логата и снимките в Dropbox, свържи страницата с твоя Dropbox. Ще се отвори Dropbox и там натискаш „Разреши“. Страницата вижда само папката „Apps/Dnevnik-na-machovete“, нищо друго от Dropbox.'),
+    h('p',null,h('button',{class:'btn primary',type:'button',onclick:dbxLogin},'Свържи с Dropbox')));
+}
+async function dbxBoot(){
+  dbxLoadTokens();
+  const p = new URLSearchParams(location.search);
+  if (p.get('code') && sessionStorage.getItem('dbx.pkce')){
+    try{ await dbxExchange(p.get('code')); }catch(e){ setStatus('error','Dropbox вход'); }
+    try{ history.replaceState(null,'',DBX_REDIRECT); }catch(e){}
+  } else if (p.get('error')){ try{ history.replaceState(null,'',DBX_REDIRECT); }catch(e){} }
+  if (!DBXS.refresh){ S.mode = 'dbx-connect'; setStatus('connect_dbx'); setSub(); refreshAll(); return; }
+  try{ await dbxOpen(); }
+  catch(e){
+    if (e.code==='auth'){ DBXS.refresh = null; dbxSaveTokens(); S.mode = 'dbx-connect'; setStatus('connect_dbx'); refreshAll(); }
+    else { S.mode = 'dbx-connect'; setStatus('error', 'Dropbox: '+String(e.message||e).slice(0,50)); refreshAll(); }
+  }
+}
+
+/* ---------- photos and logos: one interface, four places to keep them ---------- */
+const MEDIA = sub => 'data/users/'+UID+'/media/'+sub;
+const PURL = new Map();
+const newRef = () => 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const Store = {
+  async photoPut(blob){
+    const ref = newRef();
+    if (S.mode==='file'){
+      const d = await DIR.getDirectoryHandle('photos',{create:true}), name = ref+'.jpg';
+      const fh = await d.getFileHandle(name,{create:true}), w = await fh.createWritable(); await w.write(blob); await w.close();
+      return name;
+    }
+    if (S.mode==='dbx'){ const name = ref+'.jpg'; await dbxUp('/photos/'+name, blob); return name; }
+    if (S.mode==='db'){ await DB.collection(MEDIA('photos')).doc(ref).set({ data: await blobToDataURL(blob) }); return ref; }
+    await idbSet('photo:'+ref, blob); return ref;
+  },
+  async photoUrl(ref){
+    if (PURL.has(ref)) return PURL.get(ref);
+    let url = null;
+    try{
+      if (S.mode==='file'){
+        const d = await DIR.getDirectoryHandle('photos'), f = await (await d.getFileHandle(ref)).getFile();
+        url = URL.createObjectURL(new Blob([f],{type:'image/jpeg'}));
+      } else if (S.mode==='dbx'){
+        let blob = null; try{ const c = await idbGet('dl:photo:'+ref); if (c) blob = c; }catch(e){}
+        if (!blob){ blob = (await dbxDown('/photos/'+ref)).blob; try{ await idbSet('dl:photo:'+ref, blob); }catch(e){} }
+        url = URL.createObjectURL(blob);
+      } else if (S.mode==='db'){
+        const snap = await DB.collection(MEDIA('photos')).doc(ref).get();
+        const v = snap && (typeof snap.data==='function' ? snap.data() : snap.data); url = v && v.data || null;
+      } else {
+        const b = await idbGet('photo:'+ref); url = b ? URL.createObjectURL(b) : null;
+      }
+    }catch(e){ url = null; }
+    if (url) PURL.set(ref,url);
+    return url;
+  },
+  async photoDel(ref){
+    PURL.delete(ref);
+    try{
+      if (S.mode==='file'){ const d = await DIR.getDirectoryHandle('photos'); await d.removeEntry(ref); }
+      else if (S.mode==='dbx'){ await dbxRpc('files/delete_v2',{path:'/photos/'+ref}); try{ await idbDel('dl:photo:'+ref); }catch(e){} }
+      else if (S.mode==='db') await DB.collection(MEDIA('photos')).doc(ref).delete();
+      else await idbDel('photo:'+ref);
+    }catch(e){}
+  },
+  async logoPut(name, dataUrl){
+    const key = norm(name);
+    if (S.mode==='dbx'){
+      const blob = await (await fetch(dataUrl)).blob(), ext = /svg/.test(blob.type) ? 'svg' : 'png';
+      await dbxUp('/logos/'+name.replace(/[\\/:*?"<>|]/g,'_')+'.'+ext, blob);
+    } else if (S.mode==='db') await DB.collection(MEDIA('logos')).doc(hashKey(key)).set({ name, data:dataUrl });
+    else { const all = (await idbGet('logos')) || {}; all[key] = dataUrl; await idbSet('logos', all); }
+    LOGOS.set(key, dataUrl);
+  },
+  async logosLoad(){
+    const next = new Map();
+    try{
+      if (S.mode==='db'){
+        const snap = await DB.collection(MEDIA('logos')).get();
+        (snap.docs||[]).forEach(d => { const v = d.data(); if (v && v.name && v.data) next.set(norm(v.name), v.data); });
+      } else { const all = (await idbGet('logos')) || {}; Object.keys(all).forEach(k => next.set(k, all[k])); }
+    }catch(e){}
+    LOGOS = next;
+  }
+};
+
+function loadFromCSV(text){
+  const res = matchesFromCSV(text,'f');
+  if (res.err) throw new Error(res.err);
+  S.docs = new Map();
+  res.list.forEach(m => { const id = docIdOf(m.date); S.docs.set(id,(S.docs.get(id)||[]).concat([m])); });
+}
+async function openDir(){
+  FH = await DIR.getFileHandle('Machove.csv',{create:true});
+  loadFromCSV(await (await FH.getFile()).text());
+  await loadLogos();
+  S.mode = 'file'; S.loaded = true; S.reached = true; backedUp = false;
+  setStatus('loaded'); setSub(); refreshAll();
+}
+async function connect(){
+  if (!window.showDirectoryPicker){ setStatus('nofsa'); return; }
+  try{
+    DIR = await showDirectoryPicker({ mode:'readwrite', id:'machove' });
+    try{ await idbSet('dir', DIR); }catch(e){}
+    S.pendingDir = null; await openDir();
+  }catch(e){ if (e && e.name==='AbortError') return; setStatus('error', String(e && (e.name||e.message)).slice(0,60)); }
+}
+async function resume(){
+  try{
+    const p = await S.pendingDir.requestPermission({ mode:'readwrite' });
+    if (p==='granted'){ DIR = S.pendingDir; S.pendingDir = null; await openDir(); }
+  }catch(e){ setStatus('error', String(e && (e.name||e.message)).slice(0,60)); }
+}
+function connectPanel(){
+  if (!window.showDirectoryPicker) return h('div',{class:'note'},'Този браузър не може да записва във файлове. Отвори страницата в Microsoft Edge или Google Chrome.');
+  const box = h('div',{class:'note'},
+    h('p',null,'Избери папката, в която е Machove.csv. Ако там още няма такъв файл, ще се създаде. Логата се четат от подпапка „logos“.'),
+    h('p',{class:'hint'},'Избирай самата папка на дневника, не „Изтегляния“, „Документи“ или „Работен плот“ като цяло: браузърът не позволява това.'));
+  if (S.pendingDir) box.append(h('p',null,h('button',{class:'btn primary',type:'button',onclick:resume},'Продължи с папка „'+S.pendingDir.name+'“')),h('p',null,h('button',{class:'btn',type:'button',onclick:connect},'Избери друга папка')));
+  else box.append(h('p',null,h('button',{class:'btn primary',type:'button',onclick:connect},'Избери папката с Machove.csv')));
+  return box;
+}
+function startLocal(code){
+  if (S.mode==='local' || S.mode==='file') return;
+  if (unsub){ try{ unsub(); }catch(e){} unsub = null; }
+  S.mode = 'local'; S.reached = true; clearTimeout(loadTimer);
+  lsLoad(); S.loaded = true;
+  const st = (code==='not_granted'||code==='revoked'||code==='capability_disabled'||code==='invalid_argument') ? 'denied' : 'local';
+  Store.logosLoad().then(() => { setStatus(st); refreshAll(); });
+  setStatus(st); setSub(); refreshAll();
+}
+function setSub(){
+  const el = $('#sub'); if (!el) return;
+  const t = { dbx:'Пази се в Dropbox и се вижда от телефона и от компютъра. ', file:'Работи без интернет и записва в Machove.csv. ', db:'Пази се в облака и се вижда от телефона и от компютъра. ', local:'Пази се само на това устройство. ' }[S.mode] || '';
+  el.textContent = t + 'Всеки запис получава общ номер, номер в сезона и пореден път за отборите и стадиона.';
+}
+async function boot(){
+  buildChrome(); refreshAll();
+  if (IN_CLAUDE){
+    loadTimer = setTimeout(() => { if (!S.reached){ if (S.mode==='wait') startLocal(); else setStatus('slow'); } }, 10000);
+    try{
+      const [d,u] = await Promise.all([claude.use('db'), claude.use('user')]);
+      DB = d; UID = u ? await u.id() : null;
+      ui.downloads = await claude.use('downloads');
+    }catch(e){ DB = null; }
+    if (DB && UID){
+      S.mode = 'db'; setSub();
+      unsub = DB.collection('data/users/'+UID).onSnapshot(snap => {
+        const next = new Map();
+        snap.docs.forEach(d => {
+          if (!/^h\d{4}-\d{2}[ab]$/.test(d.id)) return;
+          const data = d.data(), arr = Array.isArray(data && data.matches) ? data.matches.map(clean).filter(Boolean) : [];
+          if (arr.length) next.set(d.id, arr);
+        });
+        if (inflight>0){ stash = next; return; }
+        S.docs = next; S.loaded = true;
+        if (!snap.metadata || !snap.metadata.fromCache){
+          S.reached = true; clearTimeout(loadTimer); setStatus('saved');
+          if (!logosLoadedDb){ logosLoadedDb = true; Store.logosLoad().then(refreshAll); }
+        }
+        refreshAll();
+      }, err => { startLocal(err && err.code); });
+    } else startLocal();
+    return;
+  }
+  if (HOSTED){ await dbxBoot(); return; }
+  if (window.showDirectoryPicker){
+    try{
+      const dir = await idbGet('dir');
+      if (dir){
+        if ((await dir.queryPermission({mode:'readwrite'}))==='granted'){ DIR = dir; await openDir(); return; }
+        S.pendingDir = dir;
+      }
+    }catch(e){}
+    S.mode = 'connect'; setStatus('connect'); refreshAll(); return;
+  }
+  startLocal();
+}
+
+/* ---------- chrome ---------- */
+function buildChrome(){
+  const tabs = [['diary','Дневник'],['stats','Статистика'],['data','Данни']];
+  const box = $('#tabs');
+  tabs.forEach(([k,t]) => box.append(h('button',{class:'tab',type:'button',role:'tab','data-k':k,'aria-selected':k===S.view?'true':'false',onclick:()=>{ S.view=k; buildChrome2(); }},t)));
+  $('#add').addEventListener('click', () => openForm(null));
+  buildMain();
+}
+function buildChrome2(){
+  document.querySelectorAll('#tabs .tab').forEach(b => b.setAttribute('aria-selected', b.dataset.k===S.view ? 'true':'false'));
+  buildMain(); refreshAll();
+}
+function buildMain(){
+  const main = $('#main'); main.replaceChildren();
+  Object.keys(ui).forEach(k => { if (k!=='downloads') delete ui[k]; });
+  if (S.view==='diary'){
+    ui.q = h('input',{id:'f-q',type:'search',placeholder:'Отбор, стадион, град, спомен…',value:S.q,oninput:e=>{S.q=e.target.value;renderList();}});
+    ui.season = h('select',{id:'f-season',onchange:e=>{S.seasonF=e.target.value;renderList();}});
+    ui.tour = h('select',{id:'f-tour',onchange:e=>{S.tourF=e.target.value;renderList();}});
+    ui.order = h('button',{class:'btn',type:'button',onclick:()=>{S.desc=!S.desc;ui.order.textContent=S.desc?'Най-новите първи':'Най-старите първи';renderList();}},S.desc?'Най-новите първи':'Най-старите първи');
+    main.append(
+      h('div',{class:'filters'},
+        h('div',{class:'wide'},h('label',{for:'f-q'},'Търси'),ui.q),
+        h('div',null,h('label',{for:'f-season'},'Сезон'),ui.season),
+        h('div',null,h('label',{for:'f-tour'},'Надпревара'),ui.tour),
+        ui.order),
+      h('p',{class:'hint'},'Числото до отбор или стадион показва кой път по ред го виждаш на живо (броено по дата).')
+    );
+    ui.banner = h('div'); ui.list = h('div'); main.append(ui.banner, ui.list);
+  } else if (S.view==='stats'){
+    ui.stats = h('div'); main.append(ui.stats);
+  } else {
+    buildData(main);
+  }
+}
+
+/* ---------- render ---------- */
+function refreshAll(){
+  renderTiles(); updateLists();
+  if (S.view==='diary'){ updateSelects(); renderList(); }
+  else if (S.view==='stats') renderStats();
+}
+function renderTiles(){
+  const { rows, demo } = current();
+  const uniq = f => new Set(rows.map(r=>norm(f(r.m))).filter(Boolean)).size;
+  const t = [
+    [rows.length,'Мачове'],[new Set(rows.map(r=>r.season)).size,'Сезона'],
+    [new Set(rows.map(r=>norm(r.m.stadium)).filter(Boolean)).size,'Стадиона'],
+    [new Set(rows.flatMap(r=>[norm(r.m.home),norm(r.m.away)]).filter(Boolean)).size,'Отбора'],
+    [uniq(m=>m.country),'Държави']
+  ];
+  const box = $('#tiles'); box.replaceChildren();
+  t.forEach(([n,l]) => box.append(h('div',{class:'tile'},h('b',null,S.loaded?n:'–'),h('span',null,l+(demo?' (пример)':'')))));
+}
+function uniqVals(key){
+  const seen = new Map();
+  realList().forEach(m => { const k=norm(m[key]); if (k && !seen.has(k)) seen.set(k, m[key].trim()); });
+  return [...seen.values()].sort((a,b)=>a.localeCompare(b,'bg'));
+}
+function fillList(id, vals){ const dl = document.getElementById(id); dl.replaceChildren(...vals.map(v=>h('option',{value:v}))); }
+function updateLists(){
+  const teams = new Map();
+  realList().forEach(m => [m.home,m.away].forEach(t => { const k=norm(t); if (k && !teams.has(k)) teams.set(k,t.trim()); }));
+  fillList('dl-team',[...teams.values()].sort((a,b)=>a.localeCompare(b,'bg')));
+  fillList('dl-stad',uniqVals('stadium')); fillList('dl-tour',uniqVals('tour'));
+  fillList('dl-city',uniqVals('city')); fillList('dl-country',uniqVals('country'));
+}
+function updateSelects(){
+  const { rows } = current();
+  const seasons = [...new Set(rows.map(r=>r.season))].sort().reverse();
+  const tours = [...new Map(rows.filter(r=>r.m.tour).map(r=>[norm(r.m.tour),r.m.tour])).values()].sort((a,b)=>a.localeCompare(b,'bg'));
+  ui.season.replaceChildren(h('option',{value:''},'Всички'), ...seasons.map(s=>h('option',{value:s},s)));
+  ui.tour.replaceChildren(h('option',{value:''},'Всички'), ...tours.map(t=>h('option',{value:t},t)));
+  if (!seasons.includes(S.seasonF)) S.seasonF=''; if (!tours.includes(S.tourF)) S.tourF='';
+  ui.season.value = S.seasonF; ui.tour.value = S.tourF;
+}
+function renderList(){
+  if (!ui.list) return;
+  const { rows, demo } = current();
+  ui.banner.replaceChildren(); ui.list.replaceChildren();
+  if (!S.loaded){ ui.list.append(S.mode==='connect' ? connectPanel() : S.mode==='dbx-connect' ? dbxConnectPanel() : h('p',{class:'note'},'Зареждам дневника…')); return; }
+  if (demo) ui.banner.append(h('div',{class:'note'},'Това са примерни записи, за да видиш как изглежда дневникът. Добави първия си мач с „+ Нов мач“ и те изчезват. ',
+    h('br'),'Ако вече имаш таблица, сложи я като Machove.csv в папката на програмата.'));
+  const q = norm(S.q);
+  let list = rows.filter(r => {
+    if (S.seasonF && r.season!==S.seasonF) return false;
+    if (S.tourF && norm(r.m.tour)!==norm(S.tourF)) return false;
+    if (q){ const hay = norm(FIELD_KEYS.map(k=>r.m[k]).join(' ')+' '+fmtDate(r.m.date)); if (!hay.includes(q)) return false; }
+    return true;
+  });
+  if (!list.length){ ui.list.append(h('p',{class:'note'},'Няма мачове по тези филтри.')); return; }
+  if (S.desc) list = list.slice().reverse();
+  const groups = []; list.forEach(r => { const g = groups[groups.length-1]; if (g && g.season===r.season) g.rows.push(r); else groups.push({season:r.season,rows:[r]}); });
+  groups.forEach(g => {
+    ui.list.append(h('div',{class:'season'},h('h2',null,'Сезон '+g.season,h('small',null,g.rows.length+(g.rows.length===1?' мач':' мача')))));
+    g.rows.forEach(r => ui.list.append(matchCard(r, demo)));
+  });
+}
+function cnt(n, what){ return n>1 ? h('span',{class:'cnt',title:n+'-ти път: '+what,'aria-label':n+'-ти път: '+what},'×'+n) : (n===1 ? h('span',{class:'cnt',title:'1-ви път: '+what,'aria-label':'1-ви път: '+what},'×1') : null); }
+function matchCard(r, demo){
+  const m = r.m, open = S.open.has(m.id);
+  const meta = [m.tour, m.round, m.extra && ('след '+m.extra), m.first && ('първа среща '+m.first)].filter(Boolean).join(' · ');
+  const where = [m.stadium, m.city, m.country].filter(Boolean);
+  const det = [['С кого',m.with],['Любопитни факти и спомени',m.notes],['Състави',m.lineups],['Голмайстори',m.scorers]].filter(x=>x[1]);
+  const card = h('article',{class:'match'},
+    h('div',{class:'m-head'},h('span',null,h('b',null,'№ '+r.no),' · '+r.sn+'-и в сезона',photoRefs(m).length?h('span',{class:'m-ph','aria-label':photoRefs(m).length+' снимки'},'📷 '+photoRefs(m).length):null),h('span',null,fmtDate(m.date))),
+    h('div',{class:'m-body'},
+      h('div',{class:'slot'},crest(m.home)),
+      h('div',{class:'m-center'},
+        h('div',{class:'teams'},
+          h('div',{class:'team home'},m.home||'—',cnt(r.hn,m.home)),
+          h('div',{class:'score'},m.score||'–'),
+          h('div',{class:'team'},cnt(r.an,m.away),m.away||'—')),
+        meta ? h('div',{class:'m-meta'},meta) : null,
+        where.length ? h('div',{class:'m-where'},where.join(', '),m.stadium?cnt(r.stn,m.stadium):null) : null),
+      h('div',{class:'slot'},crest(m.away))),
+    h('div',{class:'m-foot'},h('button',{class:'link',type:'button','aria-expanded':open?'true':'false',onclick:()=>{ if(S.open.has(m.id)) S.open.delete(m.id); else S.open.add(m.id); renderList(); }},open?'Скрий':'Подробности'))
+  );
+  if (open){
+    const dl = h('dl',{class:'detail'});
+    if (!det.length && !photoRefs(m).length) dl.append(h('dd',null,'Още няма спомен, снимки или състави за този мач.'));
+    det.forEach(([k,v]) => dl.append(h('div',null,h('dt',null,k),h('dd',null,v))));
+    if (photoRefs(m).length) dl.append(h('div',null,h('dt',null,'Снимки'),h('div',{class:'photos'},photoRefs(m).map(ref => {
+      const img = h('img',{alt:'Снимка от мача'}), btn = h('button',{class:'ph',type:'button','aria-label':'Отвори снимката'},img);
+      Store.photoUrl(ref).then(u => { if (u) img.src = u; else btn.hidden = true; });
+      btn.addEventListener('click', () => { if (img.src) lightbox(img.src); });
+      return btn;
+    }))));
+    if (!demo){
+      const acts = h('div',{class:'acts'});
+      acts.append(h('button',{class:'btn small',type:'button',onclick:()=>openForm(m)},'Редактирай'));
+      if (S.confirmDel===m.id){
+        acts.append(h('button',{class:'btn small danger',type:'button',onclick:()=>{S.confirmDel=null;S.open.delete(m.id);remove(m.id);}},'Да, изтрий'),
+                    h('button',{class:'btn small',type:'button',onclick:()=>{S.confirmDel=null;renderList();}},'Не'));
+      } else acts.append(h('button',{class:'btn small danger',type:'button',onclick:()=>{S.confirmDel=m.id;renderList();}},'Изтрий'));
+      dl.append(acts);
+    }
+    card.append(dl);
+  }
+  return card;
+}
+
+function lightbox(src){
+  const box = $('#modal');
+  const close = () => { box.replaceChildren(); document.removeEventListener('keydown',onKey); };
+  const onKey = e => { if (e.key==='Escape') close(); };
+  box.replaceChildren(h('div',{class:'lightbox',role:'dialog','aria-label':'Снимка',onclick:close},h('img',{src,alt:'Снимка от мача'})));
+  document.addEventListener('keydown',onKey);
+}
+function top(map, n){ return [...map.values()].sort((a,b)=>b.n-a.n || a.name.localeCompare(b.name,'bg')).slice(0,n); }
+function bars(items, empty){
+  if (!items.length) return h('p',{class:'hint'},empty||'Още няма данни.');
+  const mx = Math.max(...items.map(i=>i.n));
+  return h('div',null,items.map(i=>h('div',{class:'brow'},h('span',null,i.name),h('div',{class:'track'},h('div',{class:'fill',style:'width:'+Math.round(i.n/mx*100)+'%'})),h('b',null,i.n))));
+}
+function tally(rows, pick){
+  const mp = new Map();
+  rows.forEach(r => pick(r).forEach(v => { const k=norm(v); if(!k) return; const e=mp.get(k)||{name:v.trim(),n:0}; e.n++; mp.set(k,e); }));
+  return mp;
+}
+function renderStats(){
+  if (!ui.stats) return;
+  const { rows, demo } = current(); ui.stats.replaceChildren();
+  if (!S.loaded){ ui.stats.append(h('p',{class:'note'},(S.mode==='connect'||S.mode==='dbx-connect')?'Първо свържи папката или Dropbox от раздел „Дневник“.':'Зареждам…')); return; }
+  if (demo) ui.stats.append(h('div',{class:'note'},'Статистика върху примерните записи. Тя се обновява с твоите мачове.'));
+  const seasons = new Map(); rows.forEach(r => { const e=seasons.get(r.season)||{name:r.season,n:0}; e.n++; seasons.set(r.season,e); });
+  const perSeason = [...seasons.values()].sort((a,b)=>a.name<b.name?-1:1);
+  ui.stats.append(
+    h('div',{class:'cols'},
+      h('section',{class:'panel'},h('h3',null,'Най-посещавани стадиони'),bars(top(tally(rows,r=>[r.m.stadium]),12))),
+      h('section',{class:'panel'},h('h3',null,'Най-гледани отбори'),bars(top(tally(rows,r=>[r.m.home,r.m.away]),12)))),
+    h('div',{class:'cols'},
+      h('section',{class:'panel'},h('h3',null,'Държави'),bars(top(tally(rows,r=>[r.m.country]),12))),
+      h('section',{class:'panel'},h('h3',null,'Надпревари'),bars(top(tally(rows,r=>[r.m.tour]),12)))),
+    h('section',{class:'panel'},h('h3',null,'Мачове по сезони'),bars(perSeason))
+  );
+}
+
+/* ---------- form ---------- */
+const FIELDS = [
+  ['date','Дата','date',0],['tour','Надпревара / турнир','text',0,'dl-tour'],
+  ['round','Етап / кръг','text',0],['score','Резултат (90 мин.)','text',0],
+  ['home','Домакин','text',0,'dl-team'],['away','Гост','text',0,'dl-team'],
+  ['extra','Продължения / дузпи','text',0],['first','Първа среща (при реванш)','text',0],
+  ['stadium','Стадион','text',0,'dl-stad'],['city','Град','text',0,'dl-city'],
+  ['country','Държава','text',0,'dl-country'],['with','С кого','text',0],
+  ['notes','Любопитни факти, спомени, препратки','area',1],
+  ['lineups','Състави','area',1],['scorers','Голмайстори','area',1]
+];
+function openForm(m){
+  if (S.mode!=='file' && S.mode!=='db' && S.mode!=='local' && S.mode!=='dbx'){ setStatus('connect'); return; }
+  const box = $('#modal'), inputs = {};
+  const err = h('div',{class:'err',role:'alert'});
+  const grid = h('div',{class:'grid'});
+  FIELDS.forEach(([k,label,type,full,list]) => {
+    const id = 'fm-'+k;
+    const el = type==='area' ? h('textarea',{id}) : h('input',{id,type:type,autocomplete:'off',list:list||null});
+    el.value = m ? (m[k]||'') : '';
+    inputs[k] = el;
+    grid.append(h('div',{class:full?'full':''},h('label',{for:id},label),el));
+  });
+  let photos = photoRefs(m), saved = false, pending = 0; const added = [], removedOrig = [];
+  const phBox = h('div',{class:'full'});
+  function drawPh(){
+    const kids = photos.map(ref => {
+      const img = h('img',{alt:''}); Store.photoUrl(ref).then(u => { if (u) img.src = u; });
+      return h('div',{class:'ph-edit'},img,h('button',{class:'ph-x',type:'button','aria-label':'Махни снимката',onclick:()=>{
+        photos = photos.filter(r => r!==ref);
+        if (added.includes(ref)) Store.photoDel(ref); else removedOrig.push(ref);
+        drawPh();
+      }},'×'));
+    });
+    if (photos.length<3){
+      const fi = h('input',{type:'file',accept:'image/*',multiple:true,class:'sr',id:'fm-photo'});
+      fi.addEventListener('change', async () => {
+        const files = [...(fi.files||[])].slice(0,3-photos.length);
+        for (const f of files){
+          pending++; err.textContent = '';
+          try{ const ref = await Store.photoPut(await makePhoto(f)); photos.push(ref); added.push(ref); }
+          catch(e){ err.textContent = 'Не успях да запиша една от снимките.'; }
+          pending--; drawPh();
+        }
+      });
+      kids.push(h('label',{class:'ph-add',for:'fm-photo'},'+ Снимка',fi));
+    }
+    phBox.replaceChildren(h('label',null,'Снимки от мача (до 3)'),h('div',{class:'photos'},kids));
+  }
+  function close(){ if (!saved) added.forEach(r => Store.photoDel(r)); box.replaceChildren(); document.removeEventListener('keydown',onKey); document.getElementById('add').focus(); }
+  function onKey(e){ if (e.key==='Escape') close(); }
+  const form = h('form',{novalidate:true,onsubmit:e=>{
+    e.preventDefault();
+    const o = { id: m ? m.id : ('m'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)), t: m ? m.t : Date.now() };
+    for (const k of FIELD_KEYS) o[k] = inputs[k].value.trim();
+    if (pending){ err.textContent = 'Изчакай снимката да се запише.'; return; }
+    o.photos = photos.join('|');
+    const d = parseDate(o.date);
+    if (!d){ err.textContent = 'Избери датата на мача.'; inputs.date.focus(); return; }
+    if (!o.home || !o.away){ err.textContent = 'Попълни домакин и гост.'; (o.home?inputs.away:inputs.home).focus(); return; }
+    o.date = d; saved = true; close(); upsert(o); removedOrig.forEach(r => Store.photoDel(r));
+  }},
+    h('h2',null,m?'Редакция на мач':'Нов мач'), grid, err,
+    h('div',{class:'dacts'},h('button',{class:'btn',type:'button',onclick:close},'Откажи'),h('button',{class:'btn primary',type:'submit'},'Запази мача')));
+  const dlg = h('div',{class:'dialog',role:'dialog','aria-modal':'true','aria-label':m?'Редакция на мач':'Нов мач'},form);
+  const ov = h('div',{class:'overlay',onmousedown:e=>{ if(e.target===ov) close(); }},dlg);
+  grid.append(phBox); drawPh();
+  box.replaceChildren(ov);
+  document.addEventListener('keydown',onKey);
+  inputs.date.focus();
+}
+
+/* ---------- data: CSV in/out ---------- */
+const CSV_HEAD = ['Дата','Надпревара / турнир','Етап / кръг','Домакин','Гост','Резултат','Продължения / дузпи','Първа среща (при реванш)','Стадион','Град','Държава','С кого','Любопитни факти / спомени','Състави','Голмайстори','Снимки'];
+const CSV_KEYS = ['date','tour','round','home','away','score','extra','first','stadium','city','country','with','notes','lineups','scorers','photos'];
+function toCSV(){
+  const q = v => { v=String(v==null?'':v); return /[;"\r\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
+  const lines = [CSV_HEAD.map(q).join(';')];
+  realList().forEach(m => lines.push(CSV_KEYS.map(k => q(k==='date'?fmtDate(m.date):m[k])).join(';')));
+  return '﻿'+lines.join('\r\n');
+}
+function parseCSV(text){
+  text = text.replace(/^﻿/,'');
+  const first = text.split(/\r?\n/,1)[0]||'';
+  const c = { ';':first.split(';').length, ',':first.split(',').length, '\t':first.split('\t').length };
+  const delim = Object.keys(c).sort((a,b)=>c[b]-c[a])[0];
+  const rows = []; let row = [], cur = '', inq = false;
+  for (let i=0;i<text.length;i++){
+    const ch = text[i];
+    if (inq){ if (ch==='"'){ if (text[i+1]==='"'){ cur+='"'; i++; } else inq=false; } else cur+=ch; }
+    else if (ch==='"') inq = true;
+    else if (ch===delim){ row.push(cur); cur=''; }
+    else if (ch==='\n' || ch==='\r'){ if (ch==='\r' && text[i+1]==='\n') i++; row.push(cur); cur=''; rows.push(row); row=[]; }
+    else cur += ch;
+  }
+  if (cur!=='' || row.length){ row.push(cur); rows.push(row); }
+  return rows;
+}
+const HEAD_MAP = [['date',['дата']],['tour',['турнир','надпревара']],['round',['етап','кръг']],['home',['домакин']],['away',['гост']],['score',['резултат']],['extra',['продължения','дузпи']],['first',['първа среща','реванш']],['stadium',['стадион']],['city',['град']],['country',['държава']],['with',['с кого']],['notes',['любопитни','спомен','факти']],['lineups',['състав']],['scorers',['голмайстор']],['photos',['снимк']]];
+function matchesFromCSV(text, prefix){
+  const rows = parseCSV(text).filter(r => r.some(x=>String(x).trim()));
+  if (rows.length<2) return { list:[], bad:0 };
+  const idx = {};
+  rows[0].forEach((hd,i) => {
+    const t = norm(hd);
+    for (const [k,words] of HEAD_MAP){ if (idx[k]==null && words.some(w=>t.includes(w))){ idx[k]=i; break; } }
+  });
+  if (idx.date==null) return { err:'Не намирам колона „Дата“ в първия ред на файла.' };
+  const list = []; let bad = 0;
+  rows.slice(1).forEach((r,n) => {
+    const get = k => idx[k]==null ? '' : String(r[idx[k]]==null?'':r[idx[k]]).trim();
+    const m = clean({ id:prefix+n, t:n, date:parseDate(get('date')), tour:get('tour'),round:get('round'),home:get('home'),away:get('away'),score:get('score'),extra:get('extra'),first:get('first'),stadium:get('stadium'),city:get('city'),country:get('country'),with:get('with'),notes:get('notes'),lineups:get('lineups'),scorers:get('scorers'),photos:get('photos') });
+    if (!m || (!m.home && !m.away)){ bad++; return; }
+    list.push(m);
+  });
+  return { list, bad };
+}
+function importCSV(text){
+  const res = matchesFromCSV(text, 'i'+Date.now().toString(36)+'_');
+  if (res.err) return { err:res.err };
+  if (!res.list.length) return { err:'Във файла няма редове с мачове.' };
+  const have = new Set(realList().map(m=>m.date+'|'+norm(m.home)+'|'+norm(m.away)));
+  let added = 0, skipped = 0; const touched = new Set();
+  res.list.forEach((m,n) => {
+    const key = m.date+'|'+norm(m.home)+'|'+norm(m.away);
+    if (have.has(key)){ skipped++; return; }
+    have.add(key); m.t = Date.now()+n; m.photos = '';
+    const id = docIdOf(m.date); S.docs.set(id,(S.docs.get(id)||[]).concat([m])); touched.add(id); added++;
+  });
+  if (added){ refreshAll(); persist(touched); }
+  return { added, skipped, bad:res.bad };
+}
+function buildData(main){
+  const msg = h('p',{class:'hint',role:'status'});
+  const file = h('input',{id:'csv-file',type:'file',accept:'.csv,.txt,text/csv,text/plain'});
+  file.addEventListener('change', async () => {
+    const f = file.files && file.files[0]; if (!f) return;
+    try{
+      if (S.mode==='connect' || S.mode==='dbx-connect' || S.mode==='wait') throw new Error('Първо избери папката от раздел „Дневник“.');
+      const r = importCSV(await f.text());
+      msg.textContent = r.err ? r.err : 'Добавени: '+r.added+'. Пропуснати като дубликати: '+r.skipped+'. Редове без дата или отбори: '+r.bad+'.';
+    }catch(e){ msg.textContent = e && e.message ? e.message : 'Не успях да прочета файла.'; }
+    file.value = '';
+  });
+  const pre = h('textarea',{class:'csv',readonly:true,'aria-label':'CSV за копиране'}); pre.hidden = true;
+  const exp = h('button',{class:'btn primary',type:'button',onclick:async()=>{
+    const csv = toCSV();
+    if (realList().length===0){ msg.textContent='Още няма твои мачове за изтегляне.'; return; }
+    if (ui.downloads){
+      try{ await ui.downloads.save({ filename:'dnevnik-na-machovete.csv', data:csv }); msg.textContent='Файлът е запазен.'; return; }
+      catch(e){ if (e && e.code==='declined'){ msg.textContent='Изтеглянето е отказано.'; return; } }
+    }
+    if (!IN_CLAUDE){
+      const url = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+      const a = h('a',{href:url,download:'dnevnik-na-machovete.csv'}); document.body.append(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),2000); msg.textContent = 'Копието е свалено в папката за изтегляния.'; return;
+    }
+    pre.hidden=false; pre.value=csv; pre.focus(); pre.select();
+    try{ await navigator.clipboard.writeText(csv); msg.textContent='Копирах данните. Постави ги в празен текстов файл и го запази като .csv.'; }
+    catch(e){ msg.textContent='Маркирай текста по-долу, копирай го и го запази като .csv.'; }
+  }},'Свали копие като CSV');
+  const logoFile = h('input',{id:'logo-files',type:'file',accept:'image/*',multiple:true});
+  logoFile.addEventListener('change', async () => {
+    const files = [...(logoFile.files||[])]; let n = 0, bad = 0;
+    for (const f of files){
+      try{ await Store.logoPut(f.name.replace(/\.[^.]+$/,''), await makeLogo(f)); n++; }catch(e){ bad++; }
+    }
+    logoFile.value = ''; refreshAll();
+    msg.textContent = 'Добавени лога: '+n+(bad?'. Не успях с '+bad+'.':'.');
+  });
+  let where;
+  if (S.mode==='file'){
+    where = [h('section',{class:'panel'},h('h3',null,'Свързана папка'),
+      h('p',null,DIR ? ('Папка: '+DIR.name+' · файл Machove.csv') : 'Още не е избрана папка.'),
+      h('p',{class:'hint'},'Всяка промяна се записва веднага в Machove.csv. Преди първия запис в сесията се прави копие Machove.csv.bak. Снимките са в подпапка „photos“. Можеш да отваряш файла и в Excel, но го затваряй там, преди да записваш оттук.'),
+      h('p',null,h('button',{class:'btn',type:'button',onclick:connect},DIR?'Избери друга папка':'Избери папка'),' ',
+        DIR ? h('button',{class:'btn',type:'button',onclick:async()=>{ await loadLogos(); refreshAll(); msg.textContent='Логата са презаредени: '+LOGOS.size+'.'; }},'Презареди логата') : null)),
+      h('section',{class:'panel'},h('h3',null,'Лога на отборите'),
+        h('p',null,'Сложи картинките (PNG, JPG, SVG или WEBP) в подпапка „logos“. Името на файла е името на отбора точно както е в таблицата, например „ЦСКА.png“ или „Локомотив Пд.svg“. Отборите без файл получават цветен кръг с инициали.'),
+        h('p',{class:'hint'},'Отбори с намерени лога: '+LOGOS.size+'. След добавяне на файл натисни „Презареди логата“.'))];
+  } else {
+    where = [h('section',{class:'panel'},h('h3',null,S.mode==='dbx'?'Dropbox':S.mode==='db'?'Облак':'Това устройство'),
+      h('p',null,S.mode==='dbx' ? 'Мачовете, логата и снимките са в папка „Apps/Dnevnik-na-machovete“ в Dropbox: Machove.csv, logos и photos. Виждат се от телефона и от компютъра. Machove.csv се отваря и в Excel.' : S.mode==='db' ? 'Мачовете и снимките са в твоя частен облачен запис. Виждаш ги от телефона и от компютъра, когато си влязъл със същия профил.' : 'Мачовете и снимките са само в този браузър на това устройство. Свали копие от време на време.'),
+      S.mode==='local' ? h('p',{class:'hint'},'Ако изтриеш данните на сайта от настройките на браузъра, записите се губят.') : null,
+      S.mode==='dbx' ? h('p',{class:'hint'},'Лога можеш да слагаш и направо в подпапка „logos“ в Dropbox. Името на файла е името на отбора.') : null,
+      S.mode==='dbx' ? h('p',null,h('button',{class:'btn',type:'button',onclick:async()=>{ try{ await dbxOpen(); msg.textContent='Презаредено от Dropbox.'; }catch(e){ msg.textContent='Не успях да презаредя от Dropbox.'; } }},'Презареди от Dropbox'),' ',h('button',{class:'btn danger',type:'button',onclick:dbxLogout},'Откачи Dropbox от това устройство')) : null),
+      h('section',{class:'panel'},h('h3',null,'Лога на отборите'),
+        h('p',null,'Избери картинки (PNG, JPG, SVG или WEBP). Името на файла е името на отбора точно както е в дневника, например „ЦСКА.png“. Може да избереш много файлове наведнъж. Отборите без лого получават цветен кръг с инициали.'),
+        h('label',{for:'logo-files'},'Файлове с лога'),logoFile,
+        h('p',{class:'hint'},'Отбори с лого: '+LOGOS.size+'.'))];
+  }
+  main.append(
+    ...where,
+    h('section',{class:'panel'},h('h3',null,'Свали копие'),h('p',null,'Файлът се отваря директно в Excel. Снимките не са включени в него.'),exp),
+    h('section',{class:'panel'},h('h3',null,'Добави мачове от друг CSV'),
+      h('p',null,'Колоните се разпознават по заглавията им (Дата, Домакин, Гост, Резултат, Стадион и т.н.). Мачовете, които вече са в дневника, се пропускат.'),
+      h('label',{for:'csv-file'},'CSV файл'),file),
+    msg, pre
+  );
+}
+
+boot();
+})();
+</script>
+</body>
+</html>
