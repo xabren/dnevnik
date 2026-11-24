@@ -998,7 +998,7 @@ function renderTeam(){
   const showSeason = () => {
     seasonBox.replaceChildren();
     const e = S.tSeason && bySeason.find(x=>x.name===S.tSeason); if (!e) return;
-    seasonBox.append(h('h3',{style:'margin-top:14px'},'Сезон '+e.name),e.list.map(miniRow));
+    seasonBox.append(h('h3',{style:'margin-top:14px'},'Сезон '+e.name),...e.list.map(miniRow));
   };
   box.append(h('section',{class:'panel'},h('h3',null,'По сезони'),recTable('Сезон',bySeason,it=>{ S.tSeason = S.tSeason===it.name?'':it.name; showSeason(); }),h('p',{class:'hint'},'Натисни сезон, за да видиш мачовете му.'),seasonBox));
   showSeason();
