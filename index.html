@@ -916,9 +916,9 @@ function renderStats(){
 /* ---------- team pages ---------- */
 const TEAMS = [
   { k:'cska',   title:'ЦСКА',   names:['цска'], rival:['говедо сф','левски сф'] },
-  { k:'levski', title:'Левски', names:['говедо сф','левски сф'], rival:['цска'] }
+  { k:'levski', title:'Говедо Сф', names:['говедо сф','левски сф'], rival:['цска'] }
 ];
-const ALIAS = { 'говедо сф':'Левски', 'левски сф':'Левски', 'говедо сф u21':'Левски U21', 'левски сф u21':'Левски U21' };
+const ALIAS = {};
 const dn = name => ALIAS[norm(name)] || String(name||'');
 const LEAGUE = new Set(['а група','първа лига','efbet лига']);
 const tourGroup = t => LEAGUE.has(norm(t)) ? 'Първенство (А група / Първа лига / efbet Лига)' : (String(t||'').trim() || 'Без посочена надпревара');
@@ -976,7 +976,7 @@ function renderTeam(){
   const T = TEAMS.find(t=>t.k===S.team) || TEAMS[0];
   box.append(h('div',{class:'pills',role:'group','aria-label':'Отбор'},TEAMS.map(t => h('button',{class:'pill',type:'button','aria-pressed':t.k===T.k?'true':'false',onclick:()=>{ S.team=t.k; S.tSeason=''; renderTeam(); }},t.title))));
   const games = teamGames(T, rows);
-  box.append(h('div',{class:'thead'},crest(T.k==='levski'?'Говедо Сф':T.title),h('h2',null,T.title)));
+  box.append(h('div',{class:'thead'},crest(T.title),h('h2',null,T.title)));
   if (demo) box.append(h('div',{class:'note'},'Това са примерни записи. Страницата се попълва от твоите мачове.'));
   if (!games.length){ box.append(h('p',{class:'note'},'Още няма записани мачове на '+T.title+'.')); return; }
   box.append(h('p',{class:'hint'},'Само мачовете, записани в този дневник. Победа, равенство и загуба са по резултата след редовното време.'));
