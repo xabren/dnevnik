@@ -144,7 +144,8 @@ img.crest.plate{background:#f3f3ec;border-radius:50%;padding:5%;box-sizing:borde
 .phone .dacts{position:sticky;bottom:0;background:var(--surface);padding:10px 0;margin-top:8px;border-top:1px solid var(--line)}
 .phone .status{font-size:13px}
 
-.pills{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.pills{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
+.sel-wrap select{font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);max-width:100%}
 .pill{font:600 15px inherit;font-family:inherit;padding:8px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
 .pill[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 .thead{display:flex;align-items:center;gap:14px;margin:4px 0 12px}
@@ -268,7 +269,7 @@ const photoRefs = m => String((m&&m.photos)||'').split('|').map(x=>x.trim()).fil
 
 /* ---------- state ---------- */
 let DB = null, UID = null, unsub = null, loadTimer = null, logosLoadedDb = false, inflight = 0, stash = null;
-const S = { mode:'wait', loaded:false, reached:false, docs:new Map(), view:'diary', team:'cska', tSeason:'', q:'', seasonF:'', tourF:'', desc:false, open:new Set(), confirmDel:null };
+const S = { mode:'wait', loaded:false, reached:false, docs:new Map(), view:'diary', team:'цска', tSeason:'', q:'', seasonF:'', tourF:'', desc:false, open:new Set(), confirmDel:null };
 
 const ui = {};
 let LOGOS = new Map();
@@ -914,10 +915,7 @@ function renderStats(){
 
 
 /* ---------- team pages ---------- */
-const TEAMS = [
-  { k:'cska',   title:'ЦСКА',   names:['цска'], rival:['говедо сф','левски сф'] },
-  { k:'levski', title:'Говедо Сф', names:['говедо сф','левски сф'], rival:['цска'] }
-];
+const DERBY = { 'цска':['говедо сф','левски сф'], 'говедо сф':['цска'], 'левски сф':['цска'] };
 const ALIAS = {};
 const dn = name => ALIAS[norm(name)] || String(name||'');
 const LEAGUE = new Set(['а група','първа лига','efbet лига']);
@@ -973,9 +971,24 @@ function renderTeam(){
   const box = ui.teams; box.replaceChildren();
   if (!S.loaded){ box.append(h('p',{class:'note'},(S.mode==='connect'||S.mode==='dbx-connect')?'Първо свържи папката или Dropbox от раздел „Дневник“.':'Зареждам…')); return; }
   const { rows, demo } = current();
-  const T = TEAMS.find(t=>t.k===S.team) || TEAMS[0];
-  box.append(h('div',{class:'pills',role:'group','aria-label':'Отбор'},TEAMS.map(t => h('button',{class:'pill',type:'button','aria-pressed':t.k===T.k?'true':'false',onclick:()=>{ S.team=t.k; S.tSeason=''; renderTeam(); }},t.title))));
+  const cnt = tally(rows, r=>[r.m.home,r.m.away]);
+  const ranked = [...cnt.entries()].map(([k,e])=>({k,name:e.name,n:e.n})).sort((a,b)=>b.n-a.n||a.name.localeCompare(b.name,'bg'));
+  if (!ranked.length){ box.append(h('p',{class:'note'},'Още няма мачове.')); return; }
+  if (!cnt.has(S.team)) S.team = ranked[0].k;
+  const ent = cnt.get(S.team);
+  const T = { k:S.team, title:ent.name, names:[S.team], rival:DERBY[S.team]||[] };
+  const quick = ranked.slice(0,5); if (!quick.some(q=>q.k===T.k)) quick.push({k:T.k,name:T.title,n:ent.n});
+  const sel = h('select',{id:'t-sel','aria-label':'Избери отбор',onchange:e=>{ S.team=e.target.value; S.tSeason=''; renderTeam(); }},
+    ranked.map(q=>{ const o=h('option',{value:q.k},q.name+' ('+q.n+')'); if(q.k===T.k) o.selected=true; return o; }));
+  box.append(h('div',{class:'pills',role:'group','aria-label':'Отбор'},quick.map(q => h('button',{class:'pill',type:'button','aria-pressed':q.k===T.k?'true':'false',onclick:()=>{ S.team=q.k; S.tSeason=''; renderTeam(); }},q.name)),h('span',{class:'sel-wrap'},sel)));
   const games = teamGames(T, rows);
+  let derbyTitle = null;
+  if (T.rival.length) derbyTitle = 'Дербито срещу ';
+  else {
+    const oc = new Map(); games.forEach(g=>oc.set(g.oppKey,(oc.get(g.oppKey)||0)+1));
+    const best = [...oc.entries()].sort((a,b)=>b[1]-a[1])[0];
+    if (best && best[1]>=3){ games.forEach(g=>{ g.derby = g.oppKey===best[0]; }); derbyTitle = 'Най-често срещан съперник: '; }
+  }
   box.append(h('div',{class:'thead'},crest(T.title),h('h2',null,T.title)));
   if (demo) box.append(h('div',{class:'note'},'Това са примерни записи. Страницата се попълва от твоите мачове.'));
   if (!games.length){ box.append(h('p',{class:'note'},'Още няма записани мачове на '+T.title+'.')); return; }
@@ -1011,7 +1024,7 @@ function renderTeam(){
     const o = rec(derby), name = dn(derby[0].opp);
     const bigW = derby.filter(g=>g.res==='W').sort((a,b)=>(b.gf-b.ga)-(a.gf-a.ga))[0];
     const bigL = derby.filter(g=>g.res==='L').sort((a,b)=>(b.ga-b.gf)-(a.ga-a.gf))[0];
-    box.append(h('section',{class:'panel'},h('h3',null,'Дербито срещу '+name),
+    box.append(h('section',{class:'panel'},h('h3',null,derbyTitle+name),
       h('div',{class:'kv'},h('span',null,'Мачове'),h('b',null,o.n+': '+o.w+'П '+o.d+'Р '+o.l+'З, голове '+o.gf+':'+o.ga),
         bigW?h('span',null,'Най-голяма победа'):null,bigW?h('b',null,fmtDate(bigW.m.date)+' · '+dn(bigW.m.home)+' '+bigW.m.score+' '+dn(bigW.m.away)):null,
         bigL?h('span',null,'Най-голяма загуба'):null,bigL?h('b',null,fmtDate(bigL.m.date)+' · '+dn(bigL.m.home)+' '+bigL.m.score+' '+dn(bigL.m.away)):null),
