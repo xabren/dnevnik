@@ -143,6 +143,30 @@ img.crest.plate{background:#f3f3ec;border-radius:50%;padding:5%;box-sizing:borde
 .phone .grid .full{grid-column:1/-1}
 .phone .dacts{position:sticky;bottom:0;background:var(--surface);padding:10px 0;margin-top:8px;border-top:1px solid var(--line)}
 .phone .status{font-size:13px}
+
+.pills{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.pill{font:600 15px inherit;font-family:inherit;padding:8px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.pill[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.thead{display:flex;align-items:center;gap:14px;margin:4px 0 12px}
+.thead .crest{width:56px;height:56px;font-size:20px}
+.thead h2{font:600 30px var(--display);letter-spacing:.04em;text-transform:uppercase}
+.tiles.t5{grid-template-columns:repeat(5,1fr)}
+.form{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px}
+.dot{width:28px;height:28px;border-radius:50%;display:inline-grid;place-items:center;font:700 13px var(--display);color:#fff}
+.dot.W{background:var(--accent);color:var(--on-accent)} .dot.D{background:#8a948d} .dot.L{background:var(--danger);color:#fff}
+.tbl{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.tbl th{font-weight:600;text-align:right;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--line)}
+.tbl td{text-align:right;padding:6px;border-bottom:1px solid var(--line)}
+.tbl th:first-child,.tbl td:first-child{text-align:left}
+.tbl tr.click{cursor:pointer} .tbl tr.click:hover td{background:var(--soft)}
+.mini{display:grid;grid-template-columns:78px minmax(0,1fr) auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
+.mini .sc{font-weight:700;font-variant-numeric:tabular-nums}
+.mini .dot{width:22px;height:22px;font-size:11px;margin-right:6px;vertical-align:middle}
+.mem{padding:10px 0;border-bottom:1px solid var(--line)}
+.mem p{margin:4px 0;color:var(--muted);font-size:14px}
+.kv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;font-size:14px}
+.kv b{text-align:right}
+@media (max-width:700px){.tiles.t5{grid-template-columns:repeat(3,1fr)}.mini{grid-template-columns:70px minmax(0,1fr)}.mini button{grid-column:1/-1;justify-self:start}}
 </style>
 </head>
 <body>
@@ -244,7 +268,7 @@ const photoRefs = m => String((m&&m.photos)||'').split('|').map(x=>x.trim()).fil
 
 /* ---------- state ---------- */
 let DB = null, UID = null, unsub = null, loadTimer = null, logosLoadedDb = false, inflight = 0, stash = null;
-const S = { mode:'wait', loaded:false, reached:false, docs:new Map(), view:'diary', q:'', seasonF:'', tourF:'', desc:false, open:new Set(), confirmDel:null };
+const S = { mode:'wait', loaded:false, reached:false, docs:new Map(), view:'diary', team:'cska', tSeason:'', q:'', seasonF:'', tourF:'', desc:false, open:new Set(), confirmDel:null };
 
 const ui = {};
 let LOGOS = new Map();
@@ -709,7 +733,7 @@ async function boot(){
 
 /* ---------- chrome ---------- */
 function buildChrome(){
-  const tabs = [['diary','Дневник'],['stats','Статистика'],['data','Данни']];
+  const tabs = [['diary','Дневник'],['stats','Статистика'],['teams','Отбори'],['data','Данни']];
   const box = $('#tabs');
   tabs.forEach(([k,t]) => box.append(h('button',{class:'tab',type:'button',role:'tab','data-k':k,'aria-selected':k===S.view?'true':'false',onclick:()=>{ S.view=k; buildChrome2(); }},t)));
   $('#add').addEventListener('click', () => openForm(null));
@@ -738,6 +762,8 @@ function buildMain(){
     ui.banner = h('div'); ui.list = h('div'); main.append(ui.banner, ui.list);
   } else if (S.view==='stats'){
     ui.stats = h('div'); main.append(ui.stats);
+  } else if (S.view==='teams'){
+    ui.teams = h('div'); main.append(ui.teams);
   } else {
     buildData(main);
   }
@@ -748,6 +774,7 @@ function refreshAll(){
   renderTiles(); updateLists();
   if (S.view==='diary'){ updateSelects(); renderList(); }
   else if (S.view==='stats') renderStats();
+  else if (S.view==='teams') renderTeam();
 }
 function renderTiles(){
   const { rows, demo } = current();
@@ -883,6 +910,141 @@ function renderStats(){
       h('section',{class:'panel'},h('h3',null,'Надпревари'),bars(top(tally(rows,r=>[r.m.tour]),12)))),
     h('section',{class:'panel'},h('h3',null,'Мачове по сезони'),bars(perSeason))
   );
+}
+
+
+/* ---------- team pages ---------- */
+const TEAMS = [
+  { k:'cska',   title:'ЦСКА',   names:['цска'], rival:['говедо сф','левски сф'] },
+  { k:'levski', title:'Левски', names:['говедо сф','левски сф'], rival:['цска'] }
+];
+const ALIAS = { 'говедо сф':'Левски', 'левски сф':'Левски', 'говедо сф u21':'Левски U21', 'левски сф u21':'Левски U21' };
+const dn = name => ALIAS[norm(name)] || String(name||'');
+const LEAGUE = new Set(['а група','първа лига','efbet лига']);
+const tourGroup = t => LEAGUE.has(norm(t)) ? 'Първенство (А група / Първа лига / efbet Лига)' : (String(t||'').trim() || 'Без посочена надпревара');
+function teamGames(T, rows){
+  const mine = new Set(T.names), riv = new Set(T.rival), out = [];
+  rows.forEach(r => {
+    const m = r.m, h1 = norm(m.home), a1 = norm(m.away);
+    const home = mine.has(h1), away = mine.has(a1);
+    if (!home && !away) return;
+    const sc = /^\s*(\d+)\s*:\s*(\d+)\s*$/.exec(m.score||''); if (!sc) return;
+    const hg = +sc[1], ag = +sc[2], gf = home?hg:ag, ga = home?ag:hg;
+    const opp = home ? m.away : m.home;
+    out.push({ r, m, home, gf, ga, opp, oppKey:norm(opp), res: gf>ga?'W':gf<ga?'L':'D', derby: riv.has(norm(opp)), total:hg+ag });
+  });
+  return out;
+}
+function rec(list){
+  const o = {n:list.length,w:0,d:0,l:0,gf:0,ga:0};
+  list.forEach(g => { if(g.res==='W')o.w++; else if(g.res==='D')o.d++; else o.l++; o.gf+=g.gf; o.ga+=g.ga; });
+  return o;
+}
+function recTable(first, items, onclick){
+  return h('table',{class:'tbl'},
+    h('thead',null,h('tr',null,[first,'М','П','Р','З','Голове'].map(x=>h('th',null,x)))),
+    h('tbody',null,items.map(it => {
+      const o = rec(it.list);
+      const tr = h('tr',{class:onclick?'click':''},h('td',null,it.name),h('td',null,String(o.n)),h('td',null,String(o.w)),h('td',null,String(o.d)),h('td',null,String(o.l)),h('td',null,o.gf+':'+o.ga));
+      if (onclick) tr.addEventListener('click',()=>onclick(it));
+      return tr;
+    })));
+}
+function groupBy(games, keyFn, nameFn){
+  const mp = new Map();
+  games.forEach(g => { const k = keyFn(g); if (!k) return; const e = mp.get(k)||{name:nameFn?nameFn(g):k,list:[]}; e.list.push(g); mp.set(k,e); });
+  return [...mp.values()];
+}
+function openInDiary(m){
+  S.view = 'diary'; S.q = fmtDate(m.date); S.seasonF = ''; S.tourF = ''; S.open.add(m.id); buildChrome2();
+}
+const RES_BG = { W:'П', D:'Р', L:'З' };
+function miniRow(g){
+  const m = g.m, txt = (m.home?dn(m.home):'—')+' '+m.score+' '+(m.away?dn(m.away):'—');
+  return h('div',{class:'mini'},h('span',null,fmtDate(m.date)),h('span',null,h('span',{class:'dot '+g.res},RES_BG[g.res]),h('span',{class:'sc'},txt),h('small',{class:'hint'},' · '+[m.tour,m.round].filter(Boolean).join(' · '))),h('button',{class:'link',type:'button',onclick:()=>openInDiary(m)},'Подробности'));
+}
+function streak(games, pred){
+  let best=0, cur=0, endAt=-1;
+  games.forEach((g,i) => { if (pred(g)){ cur++; if (cur>best){ best=cur; endAt=i; } } else cur=0; });
+  return { n:best, from: best?games[endAt-best+1].m.date:'', to: best?games[endAt].m.date:'' };
+}
+function renderTeam(){
+  if (!ui.teams) return;
+  const box = ui.teams; box.replaceChildren();
+  if (!S.loaded){ box.append(h('p',{class:'note'},(S.mode==='connect'||S.mode==='dbx-connect')?'Първо свържи папката или Dropbox от раздел „Дневник“.':'Зареждам…')); return; }
+  const { rows, demo } = current();
+  const T = TEAMS.find(t=>t.k===S.team) || TEAMS[0];
+  box.append(h('div',{class:'pills',role:'group','aria-label':'Отбор'},TEAMS.map(t => h('button',{class:'pill',type:'button','aria-pressed':t.k===T.k?'true':'false',onclick:()=>{ S.team=t.k; S.tSeason=''; renderTeam(); }},t.title))));
+  const games = teamGames(T, rows);
+  box.append(h('div',{class:'thead'},crest(T.k==='levski'?'Говедо Сф':T.title),h('h2',null,T.title)));
+  if (demo) box.append(h('div',{class:'note'},'Това са примерни записи. Страницата се попълва от твоите мачове.'));
+  if (!games.length){ box.append(h('p',{class:'note'},'Още няма записани мачове на '+T.title+'.')); return; }
+  box.append(h('p',{class:'hint'},'Само мачовете, записани в този дневник. Победа, равенство и загуба са по резултата след редовното време.'));
+  const all = rec(games);
+  const tiles = [[all.n,'Мачове'],[all.w,'Победи'],[all.d,'Равенства'],[all.l,'Загуби'],[all.gf+':'+all.ga,'Голове']];
+  box.append(h('div',{class:'tiles t5'},tiles.map(([n,l])=>h('div',{class:'tile'},h('b',null,String(n)),h('span',null,l)))));
+  const last10 = games.slice(-10), first = games[0], lastG = games[games.length-1];
+  const sum = o => o.n+' мача: '+o.w+'П '+o.d+'Р '+o.l+'З';
+  box.append(h('section',{class:'panel'},h('h3',null,'Форма и граници'),
+    h('div',{class:'form','aria-label':'Последните мачове'},last10.map(g=>h('span',{class:'dot '+g.res,title:fmtDate(g.m.date)+' · '+dn(g.m.home)+' '+g.m.score+' '+dn(g.m.away)},RES_BG[g.res]))),
+    h('p',{class:'hint'},'Последните '+last10.length+' мача, най-новият е вдясно.'),
+    h('div',{class:'kv'},
+      h('span',null,'Първи записан мач'),h('b',null,fmtDate(first.m.date)+' · '+dn(first.opp)),
+      h('span',null,'Последен записан мач'),h('b',null,fmtDate(lastG.m.date)+' · '+dn(lastG.opp)),
+      h('span',null,'Вкъщи'),h('b',null,sum(rec(games.filter(g=>g.home)))),
+      h('span',null,'Навън'),h('b',null,sum(rec(games.filter(g=>!g.home)))))));
+  const bySeason = groupBy(games, g=>g.r.season).sort((a,b)=>a.name<b.name?-1:1);
+  const seasonBox = h('div');
+  const showSeason = () => {
+    seasonBox.replaceChildren();
+    const e = S.tSeason && bySeason.find(x=>x.name===S.tSeason); if (!e) return;
+    seasonBox.append(h('h3',{style:'margin-top:14px'},'Сезон '+e.name),e.list.map(miniRow));
+  };
+  box.append(h('section',{class:'panel'},h('h3',null,'По сезони'),recTable('Сезон',bySeason,it=>{ S.tSeason = S.tSeason===it.name?'':it.name; showSeason(); }),h('p',{class:'hint'},'Натисни сезон, за да видиш мачовете му.'),seasonBox));
+  showSeason();
+  const byTour = groupBy(games, g=>tourGroup(g.m.tour)).sort((a,b)=>b.list.length-a.list.length);
+  box.append(h('section',{class:'panel'},h('h3',null,'По надпревари'),recTable('Надпревара',byTour.slice(0,12))));
+  const byOpp = groupBy(games, g=>g.oppKey, g=>dn(g.opp)).sort((a,b)=>b.list.length-a.list.length||a.name.localeCompare(b.name,'bg'));
+  box.append(h('section',{class:'panel'},h('h3',null,'Съперници, най-често срещани'),recTable('Съперник',byOpp.slice(0,10))));
+  const derby = games.filter(g=>g.derby);
+  if (derby.length){
+    const o = rec(derby), name = dn(derby[0].opp);
+    const bigW = derby.filter(g=>g.res==='W').sort((a,b)=>(b.gf-b.ga)-(a.gf-a.ga))[0];
+    const bigL = derby.filter(g=>g.res==='L').sort((a,b)=>(b.ga-b.gf)-(a.ga-a.gf))[0];
+    box.append(h('section',{class:'panel'},h('h3',null,'Дербито срещу '+name),
+      h('div',{class:'kv'},h('span',null,'Мачове'),h('b',null,o.n+': '+o.w+'П '+o.d+'Р '+o.l+'З, голове '+o.gf+':'+o.ga),
+        bigW?h('span',null,'Най-голяма победа'):null,bigW?h('b',null,fmtDate(bigW.m.date)+' · '+dn(bigW.m.home)+' '+bigW.m.score+' '+dn(bigW.m.away)):null,
+        bigL?h('span',null,'Най-голяма загуба'):null,bigL?h('b',null,fmtDate(bigL.m.date)+' · '+dn(bigL.m.home)+' '+bigL.m.score+' '+dn(bigL.m.away)):null),
+      h('div',{style:'margin-top:10px'},derby.slice().reverse().map(miniRow))));
+  }
+  const byStad = groupBy(games, g=>norm(g.m.stadium), g=>g.m.stadium.trim()).sort((a,b)=>b.list.length-a.list.length||a.name.localeCompare(b.name,'bg'));
+  if (byStad.length) box.append(h('section',{class:'panel'},h('h3',null,'Стадиони'),recTable('Стадион',byStad.slice(0,8))));
+  const abroad = tally(games.filter(g=>g.m.country && norm(g.m.country)!=='българия'), g=>[g.m.country]);
+  if (abroad.size) box.append(h('section',{class:'panel'},h('h3',null,'Мачове в чужбина'),bars(top(abroad,10))));
+  const bigWin = games.filter(g=>g.res==='W').sort((a,b)=>(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf)[0];
+  const bigLoss = games.filter(g=>g.res==='L').sort((a,b)=>(b.ga-b.gf)-(a.ga-a.gf)||b.ga-a.ga)[0];
+  const goals = games.slice().sort((a,b)=>b.total-a.total)[0];
+  const unb = streak(games,g=>g.res!=='L'), wins = streak(games,g=>g.res==='W'), noWin = streak(games,g=>g.res!=='W');
+  const line = g => g ? fmtDate(g.m.date)+' · '+dn(g.m.home)+' '+g.m.score+' '+dn(g.m.away) : '—';
+  const str = x => x.n ? x.n+' мача ('+fmtDate(x.from)+' – '+fmtDate(x.to)+')' : '—';
+  box.append(h('section',{class:'panel'},h('h3',null,'Рекорди в записаните мачове'),
+    h('div',{class:'kv'},
+      h('span',null,'Най-голяма победа'),h('b',null,line(bigWin)),
+      h('span',null,'Най-голяма загуба'),h('b',null,line(bigLoss)),
+      h('span',null,'Най-резултатен мач'),h('b',null,line(goals)+' ('+goals.total+' гола)'),
+      h('span',null,'Най-дълга серия без загуба'),h('b',null,str(unb)),
+      h('span',null,'Най-дълга серия победи'),h('b',null,str(wins)),
+      h('span',null,'Най-дълга серия без победа'),h('b',null,str(noWin))),
+    h('p',{class:'hint'},'Сериите са между мачовете, които Иво е гледал, не между всички мачове на отбора.')));
+  const mem = games.map(g=>({g,ph:photoRefs(g.m).length,len:(g.m.notes||'').length})).filter(x=>x.ph||x.len>120).sort((a,b)=>b.ph-a.ph||b.len-a.len).slice(0,6);
+  if (mem.length) box.append(h('section',{class:'panel'},h('h3',null,'Спомени'),mem.map(x=>{
+    const m = x.g.m, note = (m.notes||'').replace(/\s+/g,' ').trim();
+    return h('div',{class:'mem'},h('div',null,h('b',null,fmtDate(m.date)+' · '+dn(m.home)+' '+m.score+' '+dn(m.away)),x.ph?h('span',{class:'m-ph'},' 📷 '+x.ph):null),
+      note?h('p',null,note.length>200?note.slice(0,200)+'…':note):null,
+      h('button',{class:'link',type:'button',onclick:()=>openInDiary(m)},'Отвори в дневника'));
+  })));
+  const comp = tally(games, g=>String(g.m.with||'').split(/[,;]/).map(x=>x.trim()).filter(Boolean));
+  if (comp.size) box.append(h('section',{class:'panel'},h('h3',null,'С кого е гледан'),bars(top(comp,8))));
 }
 
 /* ---------- form ---------- */
