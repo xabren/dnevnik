@@ -293,7 +293,8 @@ function checkDark(img){
 }
 function crest(name){
   const k = norm(name); if (!k) return null;
-  const file = LOGOS.get(k);
+  const BAD = /[\\/:*?"<>|]/g;
+  const file = LOGOS.get(k) || LOGOS.get(k.replace(BAD,'')) || LOGOS.get(k.replace(BAD,'_')) || LOGOS.get(k.replace(BAD,' ').replace(/\s+/g,' ').trim());
   if (file) return h('img',{class:'crest',src:file,alt:'',onload:e=>checkDark(e.target)});
   let hash = 0; for (const ch of k) hash = (hash*31 + ch.codePointAt(0)) >>> 0;
   const words = String(name).replace(/\([^)]*\)/g,' ').split(/[\s.\-]+/).filter(w=>/[\p{L}\d]/u.test(w));
