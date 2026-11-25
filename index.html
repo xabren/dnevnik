@@ -1079,7 +1079,10 @@ function openForm(m){
   const grid = h('div',{class:'grid'});
   FIELDS.forEach(([k,label,type,full,list]) => {
     const id = 'fm-'+k;
-    const el = type==='area' ? h('textarea',{id}) : h('input',{id,type:type,autocomplete:'off',list:list||null});
+    const HINT = {scorers:"1:0 Име Фамилия 27'; 1:1 Име Фамилия 45+2'; 2:1 Име Фамилия 80' (дузпа)\nРезултатът е след гола. Автогол: (автогол).",
+                  lineups:"Домакин: Вратар, Защитници, ... (смяна: 70' Име) / Гост: ...",
+                  notes:"Спомени, картони, асистенции, препратки…"};
+    const el = type==='area' ? h('textarea',{id,placeholder:HINT[k]||'',rows:k==='scorers'?4:null}) : h('input',{id,type:type,autocomplete:'off',list:list||null});
     el.value = m ? (m[k]||'') : '';
     inputs[k] = el;
     grid.append(h('div',{class:full?'full':''},h('label',{for:id},label),el));
